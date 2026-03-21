@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BrigadaDigital" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Set the splash screen background -->
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <!-- Use your app logo here. Make sure to have it in drawable -->
+        <item name="windowSplashScreenAnimatedIcon">@android:drawable/ic_dialog_info</item>
+        <!-- Set the theme of the Activity that follows the Splash Screen -->
+        <item name="postSplashScreenTheme">@style/Theme.BrigadaDigital</item>
+    </style>
+</resources>
