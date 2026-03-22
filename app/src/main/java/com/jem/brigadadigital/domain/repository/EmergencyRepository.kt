@@ -4,6 +4,7 @@ import com.jem.brigadadigital.domain.model.EmergencyEvent
 import kotlinx.coroutines.flow.Flow
 
 interface EmergencyRepository {
+    fun observeEmergency(emergencyId: String): Flow<Result<EmergencyEvent?>>
     fun observeActiveEmergency(): Flow<Result<EmergencyEvent?>>
     fun observeAllActiveEmergencies(): Flow<Result<List<EmergencyEvent>>>
     suspend fun respondToEmergency(emergencyId: String, uid: String, isGoing: Boolean): Result<Unit>

@@ -15,6 +15,28 @@ class EmergencyRepositoryImpl(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : EmergencyRepository {
 
+    override fun observeEmergency(emergencyId: String): Flow<Result<EmergencyEvent?>> {
+        return firestore.collection("emergencies")
+            .document(emergencyId)
+            .snapshots()
+            .map { documentSnapshot ->
+                try {
+                    if (!documentSnapshot.exists()) {
+                        Result.success(null)
+                    } else {
+                        val event = documentSnapshot.toObject(EmergencyEvent::class.java)
+                        Result.success(event)
+                    }
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            }
+            .catch { e ->
+                Log.e("EmergencyRepository", "Error escuchando emergencia: ${e.message}")
+                emit(Result.failure(e))
+            }
+    }
+
     override fun observeActiveEmergency(): Flow<Result<EmergencyEvent?>> {
         return firestore.collection("emergencies")
             .whereEqualTo("isActive", true)

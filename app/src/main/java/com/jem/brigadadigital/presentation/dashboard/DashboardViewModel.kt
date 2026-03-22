@@ -28,6 +28,7 @@ data class DashboardState(
 )
 
 class DashboardViewModel(
+    private val savedStateHandle: androidx.lifecycle.SavedStateHandle = androidx.lifecycle.SavedStateHandle(),
     private val emergencyRepo: EmergencyRepository = com.jem.brigadadigital.data.repository.EmergencyRepositoryImpl(),
     private val userRepo: UserRepository = com.jem.brigadadigital.data.repository.UserRepositoryImpl()
 ) : ViewModel() {
@@ -35,13 +36,21 @@ class DashboardViewModel(
     private val _uiState = MutableStateFlow(DashboardState())
     val uiState: StateFlow<DashboardState> = _uiState.asStateFlow()
 
+    private val emergencyId: String? = savedStateHandle["emergencyId"]
+
     init {
         loadDashboard()
     }
 
     private fun loadDashboard() {
         viewModelScope.launch {
-            emergencyRepo.observeActiveEmergency().collectLatest { result ->
+            val emergencyFlow = if (emergencyId != null && emergencyId != "none") {
+                emergencyRepo.observeEmergency(emergencyId)
+            } else {
+                emergencyRepo.observeActiveEmergency()
+            }
+
+            emergencyFlow.collectLatest { result ->
                 result.onSuccess { emergency ->
                     if (emergency != null) {
                         _uiState.value = _uiState.value.copy(activeEmergency = emergency, isLoading = false)

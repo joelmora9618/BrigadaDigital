@@ -156,8 +156,30 @@ class EmergencyViewModel(
         }
     }
 
+    private val _selectedAddress = MutableStateFlow<String?>(null)
+    val selectedAddress: StateFlow<String?> = _selectedAddress.asStateFlow()
+
     fun onLocationSelected(lat: Double, lon: Double, address: String?) {
         _selectedPosition.value = org.maplibre.spatialk.geojson.Position(lon, lat)
+        if (address != null) {
+            _selectedAddress.value = address
+        } else {
+            // Reverse Geocoding
+            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val urlString = "https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lon&format=json&addressdetails=1"
+                    val connection = java.net.URL(urlString).openConnection()
+                    connection.setRequestProperty("User-Agent", "BrigadaDigitalApp/1.0")
+                    val responseText = connection.getInputStream().bufferedReader().use { it.readText() }
+                    val json = org.json.JSONObject(responseText)
+                    val displayName = json.optString("display_name", "Ubicación en Mapa")
+                    _selectedAddress.value = displayName
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    _selectedAddress.value = "Ubicación Seleccionada ($lat, $lon)"
+                }
+            }
+        }
         _suggestions.value = emptyList()
     }
 
@@ -186,6 +208,7 @@ class EmergencyViewModel(
             )
             emergencyRepository.createEmergency(event)
             _selectedPosition.value = null // Reset position after creation
+            _selectedAddress.value = null
         }
     }
 }

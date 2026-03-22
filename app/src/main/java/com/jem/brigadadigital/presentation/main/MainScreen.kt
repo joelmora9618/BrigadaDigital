@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
@@ -26,7 +27,7 @@ import com.jem.brigadadigital.presentation.profile.ProfileViewModel
 
 sealed class BottomNavItem(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     data object Home : BottomNavItem("home_tab", "Inicio", Icons.Default.Home)
-    data object History : BottomNavItem("history_tab", "Historial", Icons.Default.List)
+    data object AlertMap : BottomNavItem("map_tab", "Mapa", Icons.Default.Map)
     data object Dispatch : BottomNavItem("dispatch_tab", "Despacho", Icons.Default.Send)
     data object Profile : BottomNavItem("profile_tab", "Perfil", Icons.Default.Person)
 }
@@ -49,7 +50,7 @@ fun MainScreen(
 
     val tabs = mutableListOf(
         BottomNavItem.Home,
-        BottomNavItem.History
+        BottomNavItem.AlertMap
     )
     if (canDispatch) {
         tabs.add(BottomNavItem.Dispatch)
@@ -96,20 +97,25 @@ fun MainScreen(
                         uid = uid,
                         viewModel = profileViewModel,
                         emergencyViewModel = emergencyViewModel,
-                        onNavigateToDashboard = { parentNavController.navigate("dashboard") },
-                        onNavigateToHistory = { bottomNavController.navigate(BottomNavItem.History.route) } // Navigate within bottom nav!
+                        onNavigateToDashboard = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Dashboard.createRoute()) },
+                        onNavigateToHistory = { bottomNavController.navigate(BottomNavItem.AlertMap.route) } // Navigate to Map instead!
                     )
                 }
-                composable(BottomNavItem.History.route) {
-                    HistoryScreen(
-                        onNavigateBack = { bottomNavController.popBackStack() }
+                composable(BottomNavItem.AlertMap.route) {
+                    com.jem.brigadadigital.presentation.emergency.ActiveEmergenciesMapScreen(
+                        viewModel = emergencyViewModel,
+                        onNavigateToDashboard = { emergencyId ->
+                            parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Dashboard.createRoute(emergencyId))
+                        }
                     )
                 }
                 composable(BottomNavItem.Dispatch.route) {
                     DispatchScreen(
                         userProfile = currentUser,
                         emergencyViewModel = emergencyViewModel,
-                        onNavigateToDashboard = { parentNavController.navigate("dashboard") },
+                        onNavigateToDashboard = { emergencyId -> 
+                            parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Dashboard.createRoute(emergencyId)) 
+                        },
                         onOpenMapPicker = { parentNavController.navigate("map_picker") }
                     )
                 }

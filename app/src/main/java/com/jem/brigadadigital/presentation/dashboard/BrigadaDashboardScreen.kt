@@ -16,9 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jem.brigadadigital.domain.model.UserProfile
-import org.maplibre.compose.map.MaplibreMap
-import org.maplibre.compose.layers.CircleLayer
-import org.maplibre.compose.sources.GeoJsonSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,37 +49,74 @@ fun BrigadaDashboardScreen(
             return@Scaffold
         }
 
+        var maplibreMap by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
+
+        // Gestor de marcadores nativos
+        LaunchedEffect(uiState.responders, maplibreMap, emergency.ubicacion) {
+            val map = maplibreMap ?: return@LaunchedEffect
+            val geoPoint = emergency.ubicacion
+            
+            // Limpiar marcadores anteriores (anotaciones)
+            // Nota: Esto limpia TODAS las anotaciones. Si hay rutas, también se irían.
+            map.clear()
+            
+            // 1. Añadir Marcador del Incidente
+            if (geoPoint != null) {
+                map.addMarker(
+                    org.maplibre.android.annotations.MarkerOptions()
+                        .position(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude))
+                        .title("INCIDENTE: ${emergency.titulo}")
+                )
+            }
+            
+            // 2. Añadir Marcadores de Bomberos
+            uiState.responders.filter { it.response.lastLocation != null }.forEach { resp ->
+                val loc = resp.response.lastLocation!!
+                map.addMarker(
+                    org.maplibre.android.annotations.MarkerOptions()
+                        .position(org.maplibre.android.geometry.LatLng(loc.latitude, loc.longitude))
+                        .title(resp.profile.nombre)
+                        .snippet(if (resp.response.haLlegado) "EN EL LUGAR" else "EN CAMINO")
+                )
+            }
+        }
+
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             // Mapa de Flota (Top Half)
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 val geoPoint = emergency.ubicacion
-                val cameraPosition = remember(geoPoint) {
-                    if (geoPoint != null) {
-                        org.maplibre.compose.camera.CameraPosition(
-                            target = org.maplibre.spatialk.geojson.Position(geoPoint.longitude, geoPoint.latitude),
-                            zoom = 13.0
-                        )
-                    } else {
-                        org.maplibre.compose.camera.CameraPosition(
-                            target = org.maplibre.spatialk.geojson.Position(0.0, 0.0),
-                            zoom = 1.0
-                        )
-                    }
-                }
                 
-                val cameraState = org.maplibre.compose.camera.rememberCameraState(cameraPosition)
-
                 androidx.compose.ui.viewinterop.AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { ctx ->
                         org.maplibre.android.maps.MapView(ctx).apply {
                             getMapAsync { map ->
+                                maplibreMap = map
                                 map.setStyle("https://tiles.openfreemap.org/styles/liberty")
+                                
                                 if (geoPoint != null) {
                                     map.moveCamera(
                                         org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
                                             org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude),
-                                            13.0
+                                            15.0
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    update = { view ->
+                        // Re-centrar si cambia el geoPoint (desde el ViewModel)
+                        maplibreMap?.let { map ->
+                            if (geoPoint != null) {
+                                val currentTarget = map.cameraPosition?.target
+                                val sameLocation = currentTarget?.latitude == geoPoint.latitude && 
+                                                 currentTarget?.longitude == geoPoint.longitude
+                                if (!sameLocation) {
+                                    map.moveCamera(
+                                        org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
+                                            org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude),
+                                            15.0
                                         )
                                     )
                                 }
@@ -90,56 +124,8 @@ fun BrigadaDashboardScreen(
                         }
                     }
                 )
-                // Marcador Central del Incidente UI Overlay
-                Icon(
-                    imageVector = Icons.Filled.Warning,
-                    contentDescription = "Incidente",
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(48.dp)
-                        .padding(bottom = 24.dp)
-                )
-
-                // Renderizar los bomberos sobre el mapa (Proyección manual a px)
-                if (geoPoint != null) {
-                    val centerLatRad = Math.toRadians(geoPoint.latitude)
-                    // Escala aproximada a Zoom 13.0
-                    val metersPerPixel = 156543.03392 * Math.cos(centerLatRad) / Math.pow(2.0, 13.0)
-
-                    uiState.responders.filter { it.response.lastLocation != null }.forEach { resp ->
-                        val loc = resp.response.lastLocation!!
-                        val dLat = Math.toRadians(loc.latitude - geoPoint.latitude)
-                        val dLon = Math.toRadians(loc.longitude - geoPoint.longitude)
-                        val earthRadius = 6378137.0
-                        val dx = earthRadius * dLon * Math.cos(centerLatRad)
-                        val dy = earthRadius * dLat
-
-                        val offsetX = (dx / metersPerPixel).dp
-                        val offsetY = (-dy / metersPerPixel).dp // Y hacia abajo en UI
-
-                        val isArrived = resp.response.haLlegado
-                        val markerColor = if (isArrived) Color(0xFF4CAF50) else Color.Blue // Verde si llegó, Azul si no
-                        
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.Center)
-                                .offset(x = offsetX, y = offsetY)
-                                .size(24.dp)
-                                .background(markerColor, shape = androidx.compose.foundation.shape.CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = resp.profile.nombre.take(1),
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
                 
-                // Overlay de cantidad de respondedores flotante (Glassmorphism M3 style)
+                // Overlay de cantidad de respondedores flotante
                 ElevatedCard(
                     modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
@@ -155,7 +141,7 @@ fun BrigadaDashboardScreen(
                     )
                 }
                 
-                // Botón Flotante para Finalizar Misión (Extended FAB)
+                // Botón Flotante para Finalizar Misión
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -170,7 +156,6 @@ fun BrigadaDashboardScreen(
                             contentColor = MaterialTheme.colorScheme.onError
                         )
                     } else {
-                        // Demo temporal
                         ExtendedFloatingActionButton(
                             onClick = { onCloseIncidentClicked(emergency.id) },
                             icon = { Icon(Icons.Filled.Warning, contentDescription = null) },

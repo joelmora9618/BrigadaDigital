@@ -34,6 +34,7 @@ fun ActiveMissionScreen(
 ) {
     val context = LocalContext.current
     val missionState by viewModel.missionState.collectAsStateWithLifecycle()
+    var maplibreMap by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
 
     var locationPermissionsGranted by remember { mutableStateOf(false) }
     var backgroundPermissionRequested by remember { mutableStateOf(false) }
@@ -180,18 +181,50 @@ fun ActiveMissionScreen(
                             }
                             val cameraState = org.maplibre.compose.camera.rememberCameraState(initialCameraPosition)
 
+                            // Gestor de marcadores nativos (Sincronización con el mapa)
+                            LaunchedEffect(maplibreMap, geoPoint) {
+                                val map = maplibreMap ?: return@LaunchedEffect
+                                map.clear()
+                                if (geoPoint != null) {
+                                    map.addMarker(
+                                        org.maplibre.android.annotations.MarkerOptions()
+                                            .position(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude))
+                                            .title("Destino: ${emergency.titulo}")
+                                    )
+                                }
+                            }
+
                             Box(modifier = Modifier.fillMaxSize()) {
                                 androidx.compose.ui.viewinterop.AndroidView(
                                     modifier = Modifier.fillMaxSize(),
                                     factory = { ctx ->
                                         org.maplibre.android.maps.MapView(ctx).apply {
                                             getMapAsync { map ->
+                                                maplibreMap = map
                                                 map.setStyle("https://tiles.openfreemap.org/styles/liberty")
                                                 val dest = emergency.ubicacion
                                                 if (dest != null) {
                                                     map.moveCamera(
                                                         org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
                                                             org.maplibre.android.geometry.LatLng(dest.latitude, dest.longitude),
+                                                            15.0
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    },
+                                    update = { view ->
+                                        // Re-centrar si cambia el geoPoint
+                                        maplibreMap?.let { map ->
+                                            if (geoPoint != null) {
+                                                val currentTarget = map.cameraPosition?.target
+                                                val sameLocation = currentTarget?.latitude == geoPoint.latitude && 
+                                                                 currentTarget?.longitude == geoPoint.longitude
+                                                if (!sameLocation) {
+                                                    map.moveCamera(
+                                                        org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
+                                                            org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude),
                                                             15.0
                                                         )
                                                     )
@@ -232,18 +265,7 @@ fun ActiveMissionScreen(
                                     }
                                 }
                                 
-                                // Overlay de Marcador (Usando Compose estándar anclado al centro para compatibilidad)
-                                if (geoPoint != null) {
-                                    Icon(
-                                        imageVector = androidx.compose.material.icons.Icons.Filled.Warning,
-                                        contentDescription = "Ubicación del Incidente",
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier
-                                            .align(Alignment.Center)
-                                            .size(48.dp)
-                                            .padding(bottom = 24.dp) // Offset para que la punta apunte al centro exacto
-                                    )
-                                }
+                                // Se eliminó el Overlay de Marcador manual para usar marcador nativo fijo
                             }
                         } else {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

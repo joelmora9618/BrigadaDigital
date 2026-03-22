@@ -31,7 +31,7 @@ import java.util.Locale
 fun DispatchScreen(
     userProfile: UserProfile,
     emergencyViewModel: EmergencyViewModel,
-    onNavigateToDashboard: () -> Unit,
+    onNavigateToDashboard: (String) -> Unit,
     onOpenMapPicker: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -45,7 +45,12 @@ fun DispatchScreen(
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         titleContentColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                    ),
+                    actions = {
+                        IconButton(onClick = { onNavigateToDashboard("") }) {
+                            Icon(Icons.Default.List, contentDescription = "Monitor de Mando")
+                        }
+                    }
                 )
                 TabRow(
                     selectedTabIndex = selectedTab,
@@ -72,7 +77,7 @@ fun DispatchScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             when (selectedTab) {
                 0 -> NewAlertForm(userProfile, emergencyViewModel, onOpenMapPicker)
-                1 -> ActiveEmergenciesList(emergencyViewModel)
+                1 -> ActiveEmergenciesList(emergencyViewModel, onNavigateToDashboard)
                 2 -> FinishedEmergenciesList(emergencyViewModel)
             }
         }
@@ -96,10 +101,11 @@ fun NewAlertForm(
 
     val suggestions by emergencyViewModel.suggestions.collectAsStateWithLifecycle()
     val selectedPos by emergencyViewModel.selectedPosition.collectAsStateWithLifecycle()
+    val selectedAddress by emergencyViewModel.selectedAddress.collectAsStateWithLifecycle()
 
-    LaunchedEffect(selectedPos) {
-        if (selectedPos != null) {
-            direccion = "UBICACIÓN SELECCIONADA EN MAPA"
+    LaunchedEffect(selectedAddress) {
+        if (selectedAddress != null) {
+            direccion = selectedAddress!!
         }
     }
 
@@ -264,7 +270,10 @@ fun NewAlertForm(
 }
 
 @Composable
-fun ActiveEmergenciesList(emergencyViewModel: EmergencyViewModel) {
+fun ActiveEmergenciesList(
+    emergencyViewModel: EmergencyViewModel,
+    onItemClicked: (String) -> Unit
+) {
     val activeList by emergencyViewModel.allActiveEmergencies.collectAsStateWithLifecycle()
     
     if (activeList.isEmpty()) {
@@ -279,7 +288,7 @@ fun ActiveEmergenciesList(emergencyViewModel: EmergencyViewModel) {
         ) {
             items(activeList.size) { index ->
                 val emergency = activeList[index]
-                EmergencyItem(emergency)
+                EmergencyItem(emergency, onClick = { onItemClicked(emergency.id) })
             }
         }
     }
@@ -308,10 +317,14 @@ fun FinishedEmergenciesList(emergencyViewModel: EmergencyViewModel) {
 }
 
 @Composable
-fun EmergencyItem(emergency: com.jem.brigadadigital.domain.model.EmergencyEvent) {
+fun EmergencyItem(
+    emergency: com.jem.brigadadigital.domain.model.EmergencyEvent,
+    onClick: () -> Unit = {}
+) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        onClick = onClick
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

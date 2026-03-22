@@ -102,22 +102,7 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Botón Monitor de Mando (Movido desde Despacho)
-                    val dispatchRoles = listOf("admin", "jefe", "oficial", "subjefe")
-                    val isMando = user.role.lowercase() in dispatchRoles || user.rango.lowercase() in dispatchRoles
-
-                    if (isMando) {
-                        Button(
-                            onClick = { onNavigateToDashboard() },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Icon(Icons.Default.Warning, contentDescription = null) // O una iconografía de monitor
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("MONITOR DE MANDO", fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
             is ProfileState.Error -> {

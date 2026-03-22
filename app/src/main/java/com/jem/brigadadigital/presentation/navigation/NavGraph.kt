@@ -45,7 +45,9 @@ sealed class Screen(val route: String) {
     data object RootHome : Screen("root_home")
     
     // FASE 5
-    data object Dashboard : Screen("dashboard")
+    data object Dashboard : Screen("dashboard/{emergencyId}") {
+        fun createRoute(emergencyId: String = "") = if (emergencyId.isEmpty()) "dashboard/none" else "dashboard/$emergencyId"
+    }
     data object MapPicker : Screen("map_picker")
     data object ClosureReport : Screen("closure_report/{emergencyId}") {
         fun createRoute(emergencyId: String) = "closure_report/$emergencyId"
@@ -200,16 +202,21 @@ fun MainNavGraph(
         }
         
         // FASE 5 RUTAS
-        composable(Screen.Dashboard.route) {
+        composable(Screen.Dashboard.route) { backStackEntry ->
+            val emergencyId = backStackEntry.arguments?.getString("emergencyId") ?: ""
             val dashboardViewModel: DashboardViewModel = viewModel()
+            
+            // Si pasamos el ID por SavedStateHandle (que viewModel() lo hace automáticamente si usamos el factory por defecto o Hilt)
+            // No necesitamos pasarlo manualmente si el ViewModel lo lee del SavedStateHandle.
+            
             val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
             val currentUser = if (profileState is ProfileState.Loaded) (profileState as ProfileState.Loaded).profile else com.jem.brigadadigital.domain.model.UserProfile()
             
             BrigadaDashboardScreen(
                 viewModel = dashboardViewModel,
                 currentUser = currentUser,
-                onCloseIncidentClicked = { emergencyId ->
-                    navController.navigate(Screen.ClosureReport.createRoute(emergencyId))
+                onCloseIncidentClicked = { id ->
+                    navController.navigate(Screen.ClosureReport.createRoute(id))
                 }
             )
         }
