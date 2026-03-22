@@ -1,23 +1,30 @@
 package com.jem.brigadadigital.presentation.profile
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.animateColorAsState
 import com.jem.brigadadigital.domain.model.UserProfile
 import com.jem.brigadadigital.presentation.auth.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    uid: String,
     userProfile: UserProfile,
+    viewModel: ProfileViewModel,
     authViewModel: AuthViewModel,
     onLogout: () -> Unit
 ) {
@@ -36,6 +43,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -55,8 +63,6 @@ fun ProfileScreen(
                 color = MaterialTheme.colorScheme.onSurface
             )
             
-
-
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedCard(
@@ -74,7 +80,54 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Card de Disponibilidad (Movida desde Home)
+            val statusColor by animateColorAsState(
+                targetValue = if (userProfile.disponible) Color(0xFF388E3C) else MaterialTheme.colorScheme.error,
+                label = "StatusColorAnimation"
+            )
+
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Mi Estado de Disponibilidad",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (userProfile.disponible) "DISPONIBLE" else "NO DISPONIBLE",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = statusColor
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Switch(
+                            checked = userProfile.disponible,
+                            onCheckedChange = { disponible ->
+                                viewModel.toggleAvailability(uid, disponible)
+                            },
+                            modifier = Modifier.scale(1.2f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = { 

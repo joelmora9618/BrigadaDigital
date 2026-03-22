@@ -40,6 +40,27 @@ class EmergencyRepositoryImpl(
             }
     }
 
+    override fun observeAllActiveEmergencies(): Flow<Result<List<EmergencyEvent>>> {
+        return firestore.collection("emergencies")
+            .whereEqualTo("isActive", true)
+            .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .snapshots()
+            .map { querySnapshot ->
+                try {
+                    val events = querySnapshot.documents.mapNotNull { doc ->
+                        doc.toObject(EmergencyEvent::class.java)?.copy(id = doc.id)
+                    }
+                    Result.success(events)
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            }
+            .catch { e ->
+                Log.e("EmergencyRepository", "Error escuchando todas las emergencias: ${e.message}")
+                emit(Result.failure(e))
+            }
+    }
+
     override suspend fun respondToEmergency(emergencyId: String, uid: String, isGoing: Boolean): Result<Unit> {
         return try {
             val responseData = mapOf(

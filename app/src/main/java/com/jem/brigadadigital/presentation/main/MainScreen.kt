@@ -115,7 +115,9 @@ fun MainScreen(
                 }
                 composable(BottomNavItem.Profile.route) {
                     ProfileScreen(
+                        uid = uid,
                         userProfile = currentUser,
+                        viewModel = profileViewModel,
                         authViewModel = authViewModel,
                         onLogout = {
                             // Auth ViewModel already handles clear, we just want to jump to login on parent nav

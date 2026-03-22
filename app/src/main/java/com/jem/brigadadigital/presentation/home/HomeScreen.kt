@@ -94,73 +94,29 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Card de Disponibilidad (ElevatedCard)
-                    val statusColor by animateColorAsState(
-                        targetValue = if (user.disponible) Color(0xFF388E3C) else MaterialTheme.colorScheme.error,
-                        label = "StatusColorAnimation"
+                    Text(
+                        text = "Bienvenido a la Central de Operaciones",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    ElevatedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Estado Actual",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Switch(
-                                checked = user.disponible,
-                                onCheckedChange = { disponible ->
-                                    viewModel.toggleAvailability(uid, disponible)
-                                },
-                                modifier = Modifier.scale(1.5f) // Switch grande para mejor hit target
-                            )
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Text(
-                                text = if (user.disponible) "DISPONIBLE PARA SERVICIO" else "FUERA DE SERVICIO",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = statusColor
-                            )
-                        }
-                    }
-
-                    if (!user.disponible) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(vertical = 16.dp)
-                        ) {
-                            Icon(Icons.Default.Warning, contentDescription = "Aviso", tint = MaterialTheme.colorScheme.error)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "El sistema de prioridad está apagado.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    // Botón Monitor de Mando (Movido desde Despacho)
+                    val dispatchRoles = listOf("admin", "jefe", "oficial", "subjefe")
+                    val isMando = user.role.lowercase() in dispatchRoles || user.rango.lowercase() in dispatchRoles
 
-                    
-                    // Botón Debug
-                    OutlinedButton(
-                        onClick = { emergencyViewModel.triggerTestEmergency() },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text("Simular Alerta P3 (Debug)")
+                    if (isMando) {
+                        Button(
+                            onClick = { onNavigateToDashboard() },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null) // O una iconografía de monitor
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("MONITOR DE MANDO", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

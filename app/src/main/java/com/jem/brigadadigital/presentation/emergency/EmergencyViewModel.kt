@@ -27,6 +27,13 @@ class EmergencyViewModel(
     private val _selectedPosition = MutableStateFlow<org.maplibre.spatialk.geojson.Position?>(null)
     val selectedPosition: StateFlow<org.maplibre.spatialk.geojson.Position?> = _selectedPosition.asStateFlow()
 
+    private val _allActiveEmergencies = MutableStateFlow<List<com.jem.brigadadigital.domain.model.EmergencyEvent>>(emptyList())
+    val allActiveEmergencies: StateFlow<List<com.jem.brigadadigital.domain.model.EmergencyEvent>> = _allActiveEmergencies.asStateFlow()
+
+    private val _pastEmergencies = MutableStateFlow<List<com.jem.brigadadigital.domain.model.EmergencyEvent>>(emptyList())
+    val pastEmergencies: StateFlow<List<com.jem.brigadadigital.domain.model.EmergencyEvent>> = _pastEmergencies.asStateFlow()
+
+
     data class AddressSuggestion(
         val display_name: String,
         val lat: Double,
@@ -35,6 +42,8 @@ class EmergencyViewModel(
 
     init {
         observeEmergencies()
+        observeAllActiveEmergencies()
+        observePastEmergencies()
     }
 
     private fun observeEmergencies() {
@@ -50,6 +59,26 @@ class EmergencyViewModel(
                     // Mostramos el error en pantalla mediante el Toast
                     _errorMessage.value = "Error al escuchar emergencias: ${e.message}"
                     _emergencyState.value = EmergencyState.Idle
+                }
+            }
+        }
+    }
+
+    private fun observeAllActiveEmergencies() {
+        viewModelScope.launch {
+            emergencyRepository.observeAllActiveEmergencies().collect { result ->
+                result.onSuccess { emergencies ->
+                    _allActiveEmergencies.value = emergencies
+                }
+            }
+        }
+    }
+
+    private fun observePastEmergencies() {
+        viewModelScope.launch {
+            emergencyRepository.getPastEmergencies().collect { result ->
+                result.onSuccess { emergencies ->
+                    _pastEmergencies.value = emergencies
                 }
             }
         }

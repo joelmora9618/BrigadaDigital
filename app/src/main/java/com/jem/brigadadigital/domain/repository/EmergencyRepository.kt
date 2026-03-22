@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface EmergencyRepository {
     fun observeActiveEmergency(): Flow<Result<EmergencyEvent?>>
+    fun observeAllActiveEmergencies(): Flow<Result<List<EmergencyEvent>>>
     suspend fun respondToEmergency(emergencyId: String, uid: String, isGoing: Boolean): Result<Unit>
     suspend fun createTestEmergency(): Result<Unit> // Solo para propósitos de prueba
     suspend fun updateTrackerLocation(emergencyId: String, uid: String, location: com.google.firebase.firestore.GeoPoint): Result<Unit>
