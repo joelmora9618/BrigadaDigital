@@ -65,7 +65,7 @@ fun ActiveEmergenciesMapScreen(
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
@@ -97,6 +97,7 @@ fun ActiveEmergenciesMapScreen(
                 Card(
                     modifier = Modifier
                         .align(Alignment.Center)
+                        .padding(paddingValues)
                         .padding(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
@@ -110,6 +111,7 @@ fun ActiveEmergenciesMapScreen(
                 Card(
                     modifier = Modifier
                         .align(Alignment.TopStart)
+                        .padding(paddingValues)
                         .padding(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                 ) {

@@ -22,7 +22,53 @@ fun SetupProfileScreen(
 
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
-    var cuartelId by remember { mutableStateOf("") }
+    
+    // Cuartel Dropdown State
+    var cuartelExpanded by remember { mutableStateOf(false) }
+    var selectedCuartel by remember { mutableStateOf("Cuartel I - Montserrat") }
+    val destacamentos = listOf(
+        "Cuartel I - Montserrat",
+        "Cuartel II - Pompeya",
+        "Cuartel III - Barracas",
+        "Cuartel IV - Recoleta",
+        "Cuartel V - Belgrano",
+        "Cuartel VI - Villa Crespo",
+        "Cuartel VII - Flores",
+        "Cuartel VIII - Nueva Pompeya",
+        "Cuartel IX - Chacarita",
+        "Cuartel X - Villa Lugano",
+        "Cuartel XI - Villa Devoto",
+        "Cuartel XII - Villa Urquiza",
+        "Bomberos Voluntarios La Boca",
+        "Bomberos Voluntarios San Telmo",
+        "Bomberos Voluntarios Vuelta de Rocha",
+        "B.V. Avellaneda",
+        "B.V. Lanús",
+        "B.V. Lomas de Zamora",
+        "B.V. Quilmes",
+        "B.V. San Martín",
+        "B.V. Vicente López",
+        "B.V. San Isidro",
+        "B.V. Tigre",
+        "B.V. Morón",
+        "B.V. Tres de Febrero",
+        "B.V. La Matanza",
+        "B.V. Florencio Varela",
+        "B.V. Berazategui",
+        "B.V. Brown",
+        "B.V. Moreno",
+        "B.V. Merlo",
+        "B.V. Esteban Echeverría",
+        "B.V. Ezeiza",
+        "B.V. Ituzaingó",
+        "B.V. Hurlingham",
+        "B.V. José C. Paz",
+        "B.V. Malvinas Argentinas",
+        "B.V. Pilar",
+        "B.V. Escobar",
+        "B.V. Ensenada",
+        "B.V. Berisso"
+    )
     
     // Rango Dropdown State
     var rangoExpanded by remember { mutableStateOf(false) }
@@ -137,12 +183,34 @@ fun SetupProfileScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            OutlinedTextField(
-                value = cuartelId,
-                onValueChange = { cuartelId = it },
-                label = { Text("Cuartel (Ej: Cuartel Central)") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Cuartel (Destacamento) Dropdown
+            ExposedDropdownMenuBox(
+                expanded = cuartelExpanded,
+                onExpandedChange = { cuartelExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedCuartel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Destacamento / Cuartel") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = cuartelExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = cuartelExpanded,
+                    onDismissRequest = { cuartelExpanded = false }
+                ) {
+                    destacamentos.forEach { selectionOption ->
+                        DropdownMenuItem(
+                            text = { Text(selectionOption) },
+                            onClick = {
+                                selectedCuartel = selectionOption
+                                cuartelExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -154,7 +222,7 @@ fun SetupProfileScreen(
                         apellido = apellido,
                         rango = selectedRango,
                         especialidad = selectedEspecialidad,
-                        cuartelId = cuartelId,
+                        cuartelId = selectedCuartel,
                         disponible = true // Defaults to available when completing profile
                     )
                     viewModel.saveProfile(profile)

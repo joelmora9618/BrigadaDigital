@@ -18,6 +18,11 @@ class ProfileViewModel(
     private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Idle)
     val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
 
+    private val _availablePersonnelCount = MutableStateFlow(0)
+    val availablePersonnelCount: StateFlow<Int> = _availablePersonnelCount.asStateFlow()
+
+    private var observeAvailableJob: kotlinx.coroutines.Job? = null
+
     fun checkUserProfile(uid: String) {
         viewModelScope.launch {
             _profileState.value = ProfileState.Loading
@@ -26,6 +31,7 @@ class ProfileViewModel(
                 if (profile != null) {
                     _profileState.value = ProfileState.Loaded(profile)
                     observeProfile(uid)
+                    observeAvailablePersonnel(profile.cuartelId)
                 } else {
                     _profileState.value = ProfileState.NotFound
                 }
@@ -41,6 +47,7 @@ class ProfileViewModel(
                 result.onSuccess { profile ->
                     if (profile != null) {
                         _profileState.value = ProfileState.Loaded(profile)
+                        observeAvailablePersonnel(profile.cuartelId)
                     } else {
                         _profileState.value = ProfileState.NotFound
                     }
@@ -76,8 +83,22 @@ class ProfileViewModel(
         }
     }
 
+    private fun observeAvailablePersonnel(cuartelId: String) {
+        if (cuartelId.isEmpty()) return
+        observeAvailableJob?.cancel()
+        observeAvailableJob = viewModelScope.launch {
+            userRepository.observeAvailablePersonnel(cuartelId).collect { result ->
+                result.onSuccess { count ->
+                    _availablePersonnelCount.value = count
+                }
+            }
+        }
+    }
+
     fun resetState() {
+        observeAvailableJob?.cancel()
         _profileState.value = ProfileState.Idle
+        _availablePersonnelCount.value = 0
     }
 }
 

@@ -42,11 +42,12 @@ fun ProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(paddingValues.calculateTopPadding()))
+            Spacer(modifier = Modifier.height(16.dp))
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Avatar",
@@ -142,6 +143,9 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("CERRAR SESIÓN", fontWeight = FontWeight.Bold)
             }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(paddingValues.calculateBottomPadding()))
         }
     }
 }

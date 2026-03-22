@@ -14,6 +14,8 @@ interface EmergencyRepository {
     // FASE 5 & 7
     fun observeEmergencyResponses(emergencyId: String): Flow<Result<List<com.jem.brigadadigital.domain.model.EmergencyResponse>>>
     fun getPastEmergencies(): Flow<Result<List<EmergencyEvent>>>
+    fun observeAllActiveResponders(): Flow<Result<Int>>
+    fun observeAllActiveRespondersDetailed(): Flow<Result<List<Pair<String, com.jem.brigadadigital.domain.model.EmergencyResponse>>>>
     suspend fun createEmergency(event: EmergencyEvent): Result<Unit>
     suspend fun closeEmergency(emergencyId: String, reportData: Map<String, Any>): Result<Unit>
     suspend fun markAsArrived(emergencyId: String, uid: String): Result<Unit>

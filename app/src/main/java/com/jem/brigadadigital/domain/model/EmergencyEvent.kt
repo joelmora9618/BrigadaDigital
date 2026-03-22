@@ -17,5 +17,8 @@ data class EmergencyEvent(
     
     @get:PropertyName("isActive")
     @set:PropertyName("isActive")
-    var isActive: Boolean = true
+    var isActive: Boolean = true,
+
+    val cuartelId: String = "",
+    val isGlobal: Boolean = false
 )

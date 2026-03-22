@@ -67,4 +67,37 @@ class UserRepositoryImpl(
                 }
             }
     }
+
+    override suspend fun getUserProfiles(uids: List<String>): Result<List<com.jem.brigadadigital.domain.model.UserProfile>> {
+        if (uids.isEmpty()) return Result.success(emptyList())
+        return try {
+            val chunks = uids.chunked(10) // Firestore whereIn limit is 10 or 30, being conservative
+            val allProfiles = mutableListOf<com.jem.brigadadigital.domain.model.UserProfile>()
+            for (chunk in chunks) {
+                val documents = firestore.collection("users")
+                    .whereIn("uid", chunk)
+                    .get()
+                    .await()
+                allProfiles.addAll(documents.mapNotNull { it.toObject(com.jem.brigadadigital.domain.model.UserProfile::class.java) })
+            }
+            Result.success(allProfiles)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
+    }
+
+    override fun observeAvailablePersonnel(cuartelId: String): Flow<Result<Int>> {
+        return firestore.collection("users")
+            .whereEqualTo("cuartelId", cuartelId)
+            .whereEqualTo("disponible", true)
+            .snapshots()
+            .map { snapshot ->
+                try {
+                    Result.success(snapshot.size())
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            }
+    }
 }

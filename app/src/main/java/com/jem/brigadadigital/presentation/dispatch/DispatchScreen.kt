@@ -34,8 +34,20 @@ fun DispatchScreen(
     onNavigateToDashboard: (String) -> Unit,
     onOpenMapPicker: () -> Unit
 ) {
+    val dispatchRoles = listOf("admin", "jefe", "oficial", "subjefe")
+    val canCreateAlert = remember(userProfile) {
+        userProfile.role.lowercase() in dispatchRoles || userProfile.rango.lowercase() in dispatchRoles
+    }
+
+    val availableTabs = remember(canCreateAlert) {
+        mutableListOf<String>().apply {
+            if (canCreateAlert) add("Nueva Alerta")
+            add("En Curso")
+            add("Finalizadas")
+        }
+    }
+
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Nueva Alerta", "En Curso", "Finalizadas")
 
     Scaffold(
         topBar = {
@@ -57,13 +69,15 @@ fun DispatchScreen(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                     indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                        if (selectedTab < tabPositions.size) {
+                            TabRowDefaults.Indicator(
+                                Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 ) {
-                    tabs.forEachIndexed { index, title ->
+                    availableTabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTab == index,
                             onClick = { selectedTab = index },
@@ -74,11 +88,13 @@ fun DispatchScreen(
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            when (selectedTab) {
-                0 -> NewAlertForm(userProfile, emergencyViewModel, onOpenMapPicker)
-                1 -> ActiveEmergenciesList(emergencyViewModel, onNavigateToDashboard)
-                2 -> FinishedEmergenciesList(emergencyViewModel)
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (selectedTab < availableTabs.size) {
+                when (availableTabs[selectedTab]) {
+                    "Nueva Alerta" -> NewAlertForm(userProfile, emergencyViewModel, paddingValues, onOpenMapPicker)
+                    "En Curso" -> ActiveEmergenciesList(emergencyViewModel, paddingValues, onNavigateToDashboard)
+                    "Finalizadas" -> FinishedEmergenciesList(emergencyViewModel, paddingValues)
+                }
             }
         }
     }
@@ -89,6 +105,7 @@ fun DispatchScreen(
 fun NewAlertForm(
     userProfile: UserProfile,
     emergencyViewModel: EmergencyViewModel,
+    paddingValues: PaddingValues,
     onOpenMapPicker: () -> Unit
 ) {
     var titulo by remember { mutableStateOf("") }
@@ -96,6 +113,7 @@ fun NewAlertForm(
     var descripcion by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var tipoSeleccionado by remember { mutableStateOf("Incendio") }
+    var isGlobal by remember { mutableStateOf(false) }
     val tipos = listOf("Incendio", "Accidente", "Rescate", "Servicio Especial")
     val context = LocalContext.current
 
@@ -112,10 +130,12 @@ fun NewAlertForm(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(paddingValues.calculateTopPadding()))
+        Spacer(modifier = Modifier.height(24.dp))
         Icon(
             imageVector = Icons.Default.Send,
             contentDescription = null,
@@ -126,9 +146,10 @@ fun NewAlertForm(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Nueva Alerta General",
+            text = if (isGlobal) "Nueva Alerta GLOBAL" else "Nueva Alerta LOCAL (${userProfile.cuartelId})",
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = if (isGlobal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
         )
         
         Text(
@@ -231,7 +252,36 @@ fun NewAlertForm(
             minLines = 3
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Alerta Global",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (isGlobal) "Se enviará a TODA la brigada" else "Solo visible para ${userProfile.cuartelId}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = isGlobal,
+                onCheckedChange = { isGlobal = it },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.error,
+                    checkedTrackColor = MaterialTheme.colorScheme.errorContainer
+                )
+            )
+        }
 
         Button(
             onClick = {
@@ -248,11 +298,13 @@ fun NewAlertForm(
                     descripcion = descripcion,
                     tipo = tipoSeleccionado,
                     direccion = direccion,
+                    isGlobal = isGlobal,
                     lat = lat,
                     lon = lon
                 )
                 
-                Toast.makeText(context, "ALERTA GENERAL ENVIADA A TODA LA BRIGADA", Toast.LENGTH_LONG).show()
+                val msg = if (isGlobal) "ALERTA GLOBAL ENVIADA A TODA LA BRIGADA" else "ALERTA LOCAL DESPACHADA (${userProfile.cuartelId})"
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 
                 titulo = ""
                 direccion = ""
@@ -262,16 +314,24 @@ fun NewAlertForm(
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Icon(Icons.Filled.Warning, contentDescription = "Siren")
+            Icon(if (isGlobal) Icons.Filled.Warning else Icons.Filled.Send, contentDescription = "Siren")
             Spacer(modifier = Modifier.width(8.dp))
-            Text("LANZAR ALERTA GENERAL", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = if (isGlobal) "LANZAR ALERTA GLOBAL" else "LANZAR ALERTA LOCAL",
+                fontWeight = FontWeight.ExtraBold,
+                style = MaterialTheme.typography.titleMedium
+            )
         }
+        
+        Spacer(modifier = Modifier.height(paddingValues.calculateBottomPadding()))
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
 fun ActiveEmergenciesList(
     emergencyViewModel: EmergencyViewModel,
+    paddingValues: PaddingValues,
     onItemClicked: (String) -> Unit
 ) {
     val activeList by emergencyViewModel.allActiveEmergencies.collectAsStateWithLifecycle()
@@ -283,7 +343,12 @@ fun ActiveEmergenciesList(
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(
+                top = paddingValues.calculateTopPadding() + 16.dp,
+                bottom = paddingValues.calculateBottomPadding() + 16.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(activeList.size) { index ->
@@ -295,7 +360,10 @@ fun ActiveEmergenciesList(
 }
 
 @Composable
-fun FinishedEmergenciesList(emergencyViewModel: EmergencyViewModel) {
+fun FinishedEmergenciesList(
+    emergencyViewModel: EmergencyViewModel,
+    paddingValues: PaddingValues
+) {
     val finishedList by emergencyViewModel.pastEmergencies.collectAsStateWithLifecycle()
     
     if (finishedList.isEmpty()) {
@@ -305,7 +373,12 @@ fun FinishedEmergenciesList(emergencyViewModel: EmergencyViewModel) {
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(
+                top = paddingValues.calculateTopPadding() + 16.dp,
+                bottom = paddingValues.calculateBottomPadding() + 16.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(finishedList.size) { index ->
@@ -343,6 +416,38 @@ fun EmergencyItem(
                 ) {
                     Text(if (emergency.isActive) "EN CURSO" else "FINALIZADA")
                 }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (emergency.isGlobal) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("GLOBAL", style = MaterialTheme.typography.labelSmall) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            labelColor = MaterialTheme.colorScheme.error
+                        ),
+                        border = null,
+                        modifier = Modifier.height(24.dp)
+                    )
+                } else {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("LOCAL", style = MaterialTheme.typography.labelSmall) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            labelColor = MaterialTheme.colorScheme.primary
+                        ),
+                        border = null,
+                        modifier = Modifier.height(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (emergency.isGlobal) "Todas las zonas" else emergency.cuartelId,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(

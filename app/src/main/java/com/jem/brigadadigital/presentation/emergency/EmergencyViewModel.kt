@@ -11,8 +11,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class EmergencyViewModel(
-    private val emergencyRepository: EmergencyRepository
+    private val emergencyRepository: EmergencyRepository,
+    private val userRepository: com.jem.brigadadigital.domain.repository.UserRepository
 ) : ViewModel() {
+
+    private var currentUser: com.jem.brigadadigital.domain.model.UserProfile? = null
+    
+    // Jobs to manage observers
+    private var observeEmergenciesJob: kotlinx.coroutines.Job? = null
+    private var observeAllActiveEmergenciesJob: kotlinx.coroutines.Job? = null
+    private var observePastEmergenciesJob: kotlinx.coroutines.Job? = null
+    private var observeRespondersJob: kotlinx.coroutines.Job? = null
+    private var observeDetailedRespondersJob: kotlinx.coroutines.Job? = null
 
     private val _emergencyState = MutableStateFlow<EmergencyState>(EmergencyState.Idle)
     val emergencyState: StateFlow<EmergencyState> = _emergencyState.asStateFlow()
@@ -33,6 +43,12 @@ class EmergencyViewModel(
     private val _pastEmergencies = MutableStateFlow<List<com.jem.brigadadigital.domain.model.EmergencyEvent>>(emptyList())
     val pastEmergencies: StateFlow<List<com.jem.brigadadigital.domain.model.EmergencyEvent>> = _pastEmergencies.asStateFlow()
 
+    private val _allActiveRespondersCount = MutableStateFlow(0)
+    val allActiveRespondersCount: StateFlow<Int> = _allActiveRespondersCount.asStateFlow()
+
+    private val _activeResponders = MutableStateFlow<List<com.jem.brigadadigital.domain.model.DetailedResponder>>(emptyList())
+    val activeResponders: StateFlow<List<com.jem.brigadadigital.domain.model.DetailedResponder>> = _activeResponders.asStateFlow()
+
 
     data class AddressSuggestion(
         val display_name: String,
@@ -40,23 +56,39 @@ class EmergencyViewModel(
         val lon: Double
     )
 
-    init {
+    fun initSession(user: com.jem.brigadadigital.domain.model.UserProfile) {
+        currentUser = user
+        restartObservers()
+    }
+
+    private fun restartObservers() {
+        observeEmergenciesJob?.cancel()
+        observeAllActiveEmergenciesJob?.cancel()
+        observePastEmergenciesJob?.cancel()
+        observeRespondersJob?.cancel()
+        observeDetailedRespondersJob?.cancel()
+
         observeEmergencies()
         observeAllActiveEmergencies()
         observePastEmergencies()
+        observeAllActiveResponders()
+        observeAllActiveRespondersDetailed()
     }
 
     private fun observeEmergencies() {
-        viewModelScope.launch {
-            emergencyRepository.observeActiveEmergency().collect { result ->
-                result.onSuccess { emergency ->
-                    if (emergency != null) {
-                        _emergencyState.value = EmergencyState.Active(emergency)
+        observeEmergenciesJob = viewModelScope.launch {
+            emergencyRepository.observeAllActiveEmergencies().collect { result ->
+                result.onSuccess { emergencies ->
+                    val userCuartel = currentUser?.cuartelId ?: ""
+                    // La alerta activa primaria es la más reciente que sea global o de mi cuartel
+                    val myEmergencies = emergencies.filter { it.isGlobal || it.cuartelId == userCuartel }
+                    val active = myEmergencies.firstOrNull()
+                    if (active != null) {
+                        _emergencyState.value = EmergencyState.Active(active)
                     } else {
                         _emergencyState.value = EmergencyState.Idle
                     }
                 }.onFailure { e ->
-                    // Mostramos el error en pantalla mediante el Toast
                     _errorMessage.value = "Error al escuchar emergencias: ${e.message}"
                     _emergencyState.value = EmergencyState.Idle
                 }
@@ -65,20 +97,87 @@ class EmergencyViewModel(
     }
 
     private fun observeAllActiveEmergencies() {
-        viewModelScope.launch {
+        observeAllActiveEmergenciesJob = viewModelScope.launch {
             emergencyRepository.observeAllActiveEmergencies().collect { result ->
                 result.onSuccess { emergencies ->
-                    _allActiveEmergencies.value = emergencies
+                    val userCuartel = currentUser?.cuartelId ?: ""
+                    _allActiveEmergencies.value = emergencies.filter { it.isGlobal || it.cuartelId == userCuartel }
                 }
             }
         }
     }
 
     private fun observePastEmergencies() {
-        viewModelScope.launch {
+        observePastEmergenciesJob = viewModelScope.launch {
             emergencyRepository.getPastEmergencies().collect { result ->
                 result.onSuccess { emergencies ->
-                    _pastEmergencies.value = emergencies
+                    val userCuartel = currentUser?.cuartelId ?: ""
+                    _pastEmergencies.value = emergencies.filter { it.isGlobal || it.cuartelId == userCuartel }
+                }
+            }
+        }
+    }
+
+    private fun observeAllActiveResponders() {
+        // Para el contador, solo contamos los que están en mis alertas (Locales + Globales)
+        observeRespondersJob = viewModelScope.launch {
+            emergencyRepository.observeAllActiveRespondersDetailed().collect { result ->
+                result.onSuccess { detailedPairs ->
+                    val userCuartel = currentUser?.cuartelId ?: ""
+                    val emergencies = _allActiveEmergencies.value.associateBy { it.id }
+                    
+                    val relevantCount = detailedPairs.count { (emergencyId, _) ->
+                        val emergency = emergencies[emergencyId]
+                        emergency != null && (emergency.isGlobal || emergency.cuartelId == userCuartel)
+                    }
+                    _allActiveRespondersCount.value = relevantCount
+                }
+            }
+        }
+    }
+
+    private fun observeAllActiveRespondersDetailed() {
+        observeDetailedRespondersJob = viewModelScope.launch {
+            emergencyRepository.observeAllActiveRespondersDetailed().collect { result ->
+                result.onSuccess { detailedPairs ->
+                    if (detailedPairs.isEmpty()) {
+                        _activeResponders.value = emptyList()
+                        return@onSuccess
+                    }
+
+                    val userCuartel = currentUser?.cuartelId ?: ""
+                    val relevantEmergencies = _allActiveEmergencies.value.associateBy { it.id }
+
+                    val filteredPairs = detailedPairs.filter { (emergencyId, _) ->
+                        val emergency = relevantEmergencies[emergencyId]
+                        emergency != null && (emergency.isGlobal || emergency.cuartelId == userCuartel)
+                    }
+
+                    if (filteredPairs.isEmpty()) {
+                        _activeResponders.value = emptyList()
+                        return@onSuccess
+                    }
+
+                    val uids = filteredPairs.map { it.second.uid }.distinct()
+                    val profilesResult = userRepository.getUserProfiles(uids)
+                    val profilesMap = profilesResult.getOrDefault(emptyList()).associateBy { it.uid }
+                    
+                    val finalDetailedList = filteredPairs.mapNotNull { (emergencyId, response) ->
+                        val profile = profilesMap[response.uid]
+                        val emergency = relevantEmergencies[emergencyId]
+                        if (profile != null && emergency != null) {
+                            com.jem.brigadadigital.domain.model.DetailedResponder(
+                                uid = response.uid,
+                                nombre = profile.nombre,
+                                rango = profile.rango,
+                                destacamento = profile.cuartelId,
+                                especialidad = profile.especialidad,
+                                emergencyId = emergencyId,
+                                emergencyTitle = emergency.titulo
+                            )
+                        } else null
+                    }
+                    _activeResponders.value = finalDetailedList
                 }
             }
         }
@@ -187,9 +286,18 @@ class EmergencyViewModel(
         _suggestions.value = emptyList()
     }
 
-    // Actualizar createEmergency para incluir coordenadas
-    fun createEmergency(titulo: String, descripcion: String, tipo: String, direccion: String, lat: Double? = null, lon: Double? = null) {
+    // Actualizar createEmergency para incluir coordenadas y local/global
+    fun createEmergency(
+        titulo: String, 
+        descripcion: String, 
+        tipo: String, 
+        direccion: String, 
+        isGlobal: Boolean,
+        lat: Double? = null, 
+        lon: Double? = null
+    ) {
         viewModelScope.launch {
+            val userCuartel = currentUser?.cuartelId ?: ""
             val ubicacion = if (lat != null && lon != null) {
                 com.google.firebase.firestore.GeoPoint(lat, lon)
             } else {
@@ -203,6 +311,8 @@ class EmergencyViewModel(
                 direccion = direccion,
                 tipo = tipo,
                 isActive = true,
+                isGlobal = isGlobal,
+                cuartelId = userCuartel,
                 timestamp = System.currentTimeMillis(),
                 ubicacion = ubicacion
             )
@@ -211,13 +321,33 @@ class EmergencyViewModel(
             _selectedAddress.value = null
         }
     }
+
+    fun resetState() {
+        currentUser = null
+        observeEmergenciesJob?.cancel()
+        observeAllActiveEmergenciesJob?.cancel()
+        observePastEmergenciesJob?.cancel()
+        observeRespondersJob?.cancel()
+        observeDetailedRespondersJob?.cancel()
+        
+        _emergencyState.value = EmergencyState.Idle
+        _allActiveEmergencies.value = emptyList()
+        _pastEmergencies.value = emptyList()
+        _allActiveRespondersCount.value = 0
+        _activeResponders.value = emptyList()
+        _errorMessage.value = null
+        _suggestions.value = emptyList()
+        _selectedPosition.value = null
+        _selectedAddress.value = null
+    }
 }
 
 class EmergencyViewModelFactory(
-    private val repository: EmergencyRepository = EmergencyRepositoryImpl()
+    private val repository: EmergencyRepository = EmergencyRepositoryImpl(),
+    private val userRepository: com.jem.brigadadigital.domain.repository.UserRepository = com.jem.brigadadigital.data.repository.UserRepositoryImpl()
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return EmergencyViewModel(repository) as T
+        return EmergencyViewModel(repository, userRepository) as T
     }
 }

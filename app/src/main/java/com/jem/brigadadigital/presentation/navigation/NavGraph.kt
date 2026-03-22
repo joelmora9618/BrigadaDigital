@@ -53,6 +53,8 @@ sealed class Screen(val route: String) {
         fun createRoute(emergencyId: String) = "closure_report/$emergencyId"
     }
     data object History : Screen("history")
+    data object ActiveAlerts : Screen("active_alerts")
+    data object ActiveResponders : Screen("active_responders")
 }
 
 @Composable
@@ -118,9 +120,9 @@ fun MainNavGraph(
                 }
 
                 LaunchedEffect(uid) {
-                    if (profileState is ProfileState.Idle) {
-                        profileViewModel.checkUserProfile(uid)
-                    }
+                    profileViewModel.resetState()
+                    emergencyViewModel.resetState()
+                    profileViewModel.checkUserProfile(uid)
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -142,13 +144,22 @@ fun MainNavGraph(
                         }
                         is ProfileState.Loaded -> {
                             val currentUser = (profileState as ProfileState.Loaded).profile
+                            
+                            // Initialize EmergencyViewModel session with the loaded profile
+                            // Use LaunchedEffect to only call it when currentUser changes
+                            LaunchedEffect(currentUser) {
+                                emergencyViewModel.initSession(currentUser)
+                            }
+
                             com.jem.brigadadigital.presentation.main.MainScreen(
                                 uid = uid,
                                 currentUser = currentUser,
                                 profileViewModel = profileViewModel,
                                 emergencyViewModel = emergencyViewModel,
                                 authViewModel = authViewModel,
-                                parentNavController = navController
+                                parentNavController = navController,
+                                onNavigateToActiveAlerts = { navController.navigate(Screen.ActiveAlerts.route) },
+                                onNavigateToResponders = { navController.navigate(Screen.ActiveResponders.route) }
                             )
                         }
                         is ProfileState.Error -> {
@@ -251,5 +262,28 @@ fun MainNavGraph(
             )
         }
 
+        composable(Screen.ActiveAlerts.route) {
+            com.jem.brigadadigital.presentation.emergency.ActiveEmergenciesListScreen(
+                viewModel = emergencyViewModel,
+                onItemClicked = { emergencyId ->
+                    navController.navigate(Screen.Dashboard.createRoute(emergencyId))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.ActiveResponders.route) {
+            com.jem.brigadadigital.presentation.emergency.ActiveRespondersListScreen(
+                viewModel = emergencyViewModel,
+                onEmergencyClicked = { emergencyId ->
+                    navController.navigate(Screen.Dashboard.createRoute(emergencyId))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }

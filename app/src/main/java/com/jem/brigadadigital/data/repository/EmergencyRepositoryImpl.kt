@@ -190,6 +190,43 @@ class EmergencyRepositoryImpl(
             }
     }
 
+    override fun observeAllActiveResponders(): Flow<Result<Int>> {
+        return firestore.collectionGroup("responses")
+            .whereEqualTo("isGoing", true)
+            .snapshots()
+            .map { querySnapshot ->
+                Result.success(querySnapshot.size())
+            }
+            .catch { e ->
+                Log.e("EmergencyRepository", "Error escuchando respondedores globales: ${e.message}")
+                emit(Result.failure(e))
+            }
+    }
+
+    override fun observeAllActiveRespondersDetailed(): Flow<Result<List<Pair<String, com.jem.brigadadigital.domain.model.EmergencyResponse>>>> {
+        return firestore.collectionGroup("responses")
+            .whereEqualTo("isGoing", true)
+            .snapshots()
+            .map { querySnapshot ->
+                try {
+                    val detailedList = querySnapshot.documents.mapNotNull { doc ->
+                        val response = doc.toObject(com.jem.brigadadigital.domain.model.EmergencyResponse::class.java)?.copy(uid = doc.id)
+                        val emergencyId = doc.reference.parent.parent?.id
+                        if (response != null && emergencyId != null) {
+                            Pair(emergencyId, response)
+                        } else null
+                    }
+                    Result.success(detailedList)
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            }
+            .catch { e ->
+                Log.e("EmergencyRepository", "Error escuchando respondedores detallados: ${e.message}")
+                emit(Result.failure(e))
+            }
+    }
+
     override suspend fun createEmergency(event: EmergencyEvent): Result<Unit> {
         return try {
             firestore.collection("emergencies").add(event).await()

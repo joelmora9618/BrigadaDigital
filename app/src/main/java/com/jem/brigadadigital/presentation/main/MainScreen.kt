@@ -28,7 +28,7 @@ import com.jem.brigadadigital.presentation.profile.ProfileViewModel
 sealed class BottomNavItem(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     data object Home : BottomNavItem("home_tab", "Inicio", Icons.Default.Home)
     data object AlertMap : BottomNavItem("map_tab", "Mapa", Icons.Default.Map)
-    data object Dispatch : BottomNavItem("dispatch_tab", "Despacho", Icons.Default.Send)
+    data object Dispatch : BottomNavItem("dispatch_tab", "Alertas", Icons.Default.Send)
     data object Profile : BottomNavItem("profile_tab", "Perfil", Icons.Default.Person)
 }
 
@@ -39,7 +39,9 @@ fun MainScreen(
     profileViewModel: ProfileViewModel,
     emergencyViewModel: EmergencyViewModel,
     authViewModel: AuthViewModel,
-    parentNavController: NavHostController // To navigate to Dashboard or external screens
+    parentNavController: NavHostController, // To navigate to Dashboard or external screens
+    onNavigateToActiveAlerts: () -> Unit,
+    onNavigateToResponders: () -> Unit
 ) {
     val bottomNavController = rememberNavController()
     
@@ -50,12 +52,10 @@ fun MainScreen(
 
     val tabs = mutableListOf(
         BottomNavItem.Home,
-        BottomNavItem.AlertMap
+        BottomNavItem.AlertMap,
+        BottomNavItem.Dispatch,
+        BottomNavItem.Profile
     )
-    if (canDispatch) {
-        tabs.add(BottomNavItem.Dispatch)
-    }
-    tabs.add(BottomNavItem.Profile)
 
     Scaffold(
         bottomBar = {
@@ -90,7 +90,7 @@ fun MainScreen(
             }
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+        Box(modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())) {
             NavHost(navController = bottomNavController, startDestination = BottomNavItem.Home.route) {
                 composable(BottomNavItem.Home.route) {
                     HomeScreen(
@@ -98,7 +98,9 @@ fun MainScreen(
                         viewModel = profileViewModel,
                         emergencyViewModel = emergencyViewModel,
                         onNavigateToDashboard = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Dashboard.createRoute()) },
-                        onNavigateToHistory = { bottomNavController.navigate(BottomNavItem.AlertMap.route) } // Navigate to Map instead!
+                        onNavigateToHistory = { bottomNavController.navigate(BottomNavItem.AlertMap.route) },
+                        onNavigateToActiveAlerts = onNavigateToActiveAlerts,
+                        onNavigateToResponders = onNavigateToResponders
                     )
                 }
                 composable(BottomNavItem.AlertMap.route) {
@@ -126,8 +128,8 @@ fun MainScreen(
                         viewModel = profileViewModel,
                         authViewModel = authViewModel,
                         onLogout = {
-                            // Auth ViewModel already handles clear, we just want to jump to login on parent nav
-                            // Handled by AuthState listener in Root NavGraph typically.
+                            profileViewModel.resetState()
+                            emergencyViewModel.resetState()
                         }
                     )
                 }
