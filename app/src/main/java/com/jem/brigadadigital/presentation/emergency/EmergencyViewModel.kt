@@ -50,6 +50,15 @@ class EmergencyViewModel(
     private val _respondedIds = MutableStateFlow<Set<String>>(emptySet())
     val respondedIds: StateFlow<Set<String>> = _respondedIds.asStateFlow()
 
+    val hasUnrespondedAlerts: StateFlow<Boolean> = combine(
+        _allActiveEmergencies,
+        _respondedIds
+    ) { active, responded ->
+        val userCuartel = currentUser?.cuartelId ?: ""
+        val relevant = active.filter { it.isGlobal || it.cuartelId == userCuartel }
+        relevant.any { it.id !in responded }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
 
     data class AddressSuggestion(
         val display_name: String,

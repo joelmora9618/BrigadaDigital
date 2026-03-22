@@ -105,12 +105,25 @@ fun HomeScreen(
                         scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
                     ),
                     actions = {
-                        IconButton(onClick = { /* Future: Notifications */ }) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notificaciones",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
+                        val hasNewAlerts by emergencyViewModel.hasUnrespondedAlerts.collectAsStateWithLifecycle()
+                        
+                        IconButton(onClick = onNavigateToActiveAlerts) {
+                            BadgedBox(
+                                badge = {
+                                    if (hasNewAlerts) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.error,
+                                            contentColor = Color.White
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = "Notificaciones",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
                 )

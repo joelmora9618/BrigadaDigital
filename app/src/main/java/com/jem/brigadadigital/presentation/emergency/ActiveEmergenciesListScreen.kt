@@ -1,5 +1,6 @@
 package com.jem.brigadadigital.presentation.emergency
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +26,7 @@ fun ActiveEmergenciesListScreen(
     onNavigateBack: () -> Unit
 ) {
     val activeList by viewModel.allActiveEmergencies.collectAsStateWithLifecycle()
+    val respondedIds by viewModel.respondedIds.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -36,14 +38,14 @@ fun ActiveEmergenciesListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onErrorContainer
+                    containerColor = Color(0xFF1E1E1E), // Darker for deep mode
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues).background(MaterialTheme.colorScheme.background)) {
             if (activeList.isEmpty()) {
                 Text(
                     "No hay alertas en curso",
@@ -59,8 +61,12 @@ fun ActiveEmergenciesListScreen(
                 ) {
                     items(activeList.size) { index ->
                         val emergency = activeList[index]
-                        // Reusing the same Item style
-                        EmergencyOverviewItem(emergency, onClick = { onItemClicked(emergency.id) })
+                        val isNew = emergency.id !in respondedIds
+                        EmergencyOverviewItem(
+                            emergency = emergency, 
+                            isNew = isNew,
+                            onClick = { onItemClicked(emergency.id) }
+                        )
                     }
                 }
             }
@@ -72,11 +78,17 @@ fun ActiveEmergenciesListScreen(
 @Composable
 fun EmergencyOverviewItem(
     emergency: com.jem.brigadadigital.domain.model.EmergencyEvent,
+    isNew: Boolean,
     onClick: () -> Unit
 ) {
-    ElevatedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
         onClick = onClick
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -91,17 +103,24 @@ fun EmergencyOverviewItem(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
-                Badge(containerColor = MaterialTheme.colorScheme.error) {
-                    Text("ACTIVA", color = MaterialTheme.colorScheme.onError)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isNew) {
+                        Badge(containerColor = MaterialTheme.colorScheme.error, modifier = Modifier.padding(end = 8.dp)) {
+                            Text("NUEVA", color = Color.White, modifier = Modifier.padding(horizontal = 4.dp))
+                        }
+                    }
+                    Badge(containerColor = if (isNew) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error) {
+                        Text("ACTIVA", color = Color.White)
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "${emergency.tipo} • ${emergency.direccion}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             val date = java.util.Date(emergency.timestamp)
             val format = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
             Text(
