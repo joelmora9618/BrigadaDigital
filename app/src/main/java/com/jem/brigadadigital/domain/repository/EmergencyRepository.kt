@@ -19,4 +19,6 @@ interface EmergencyRepository {
     suspend fun createEmergency(event: EmergencyEvent): Result<Unit>
     suspend fun closeEmergency(emergencyId: String, reportData: Map<String, Any>): Result<Unit>
     suspend fun markAsArrived(emergencyId: String, uid: String): Result<Unit>
+    suspend fun getRespondedEmergencyIds(uid: String): Result<Set<String>>
+    suspend fun checkIfUserResponded(emergencyId: String, uid: String): Result<Boolean>
 }

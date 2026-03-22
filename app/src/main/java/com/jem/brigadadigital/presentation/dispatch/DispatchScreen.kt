@@ -1,6 +1,7 @@
 package com.jem.brigadadigital.presentation.dispatch
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -13,6 +14,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -20,6 +23,7 @@ import com.jem.brigadadigital.domain.model.UserProfile
 import com.jem.brigadadigital.presentation.emergency.EmergencyViewModel
 
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -52,27 +56,36 @@ fun DispatchScreen(
     Scaffold(
         topBar = {
             Column {
-                CenterAlignedTopAppBar(
-                    title = { Text("Panel de Despacho", fontWeight = FontWeight.Bold) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ),
-                    actions = {
-                        IconButton(onClick = { onNavigateToDashboard("") }) {
-                            Icon(Icons.Default.List, contentDescription = "Monitor de Mando")
-                        }
-                    }
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    MaterialTheme.colorScheme.background
+                                )
+                            )
+                        )
+                ) {
+                    CenterAlignedTopAppBar(
+                        title = { Text("Panel de Despacho", fontWeight = FontWeight.Bold) },
+                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            containerColor = Color.Transparent,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                }
+                
                 TabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     indicator = { tabPositions ->
                         if (selectedTab < tabPositions.size) {
                             TabRowDefaults.Indicator(
                                 Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -81,7 +94,7 @@ fun DispatchScreen(
                         Tab(
                             selected = selectedTab == index,
                             onClick = { selectedTab = index },
-                            text = { Text(title, fontWeight = FontWeight.Bold) }
+                            text = { Text(title, style = MaterialTheme.typography.labelMedium) }
                         )
                     }
                 }
@@ -146,17 +159,13 @@ fun NewAlertForm(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = if (isGlobal) "Nueva Alerta GLOBAL" else "Nueva Alerta LOCAL (${userProfile.cuartelId})",
+            text = if (isGlobal) "Nueva Alerta GLOBAL" else "Nueva Alerta LOCAL",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = if (isGlobal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            color = Color.White
         )
         
-        Text(
-            text = "Despachando como: ${userProfile.rango} ${userProfile.nombre}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Texto Despachando como: eliminado por petición del usuario
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -394,9 +403,14 @@ fun EmergencyItem(
     emergency: com.jem.brigadadigital.domain.model.EmergencyEvent,
     onClick: () -> Unit = {}
 ) {
-    ElevatedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
         onClick = onClick
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -446,7 +460,7 @@ fun EmergencyItem(
                 Text(
                     text = if (emergency.isGlobal) "Todas las zonas" else emergency.cuartelId,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.outline
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -461,7 +475,7 @@ fun EmergencyItem(
             Text(
                 text = "Iniciada: ${format.format(date)}",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
+                color = Color.White
             )
         }
     }

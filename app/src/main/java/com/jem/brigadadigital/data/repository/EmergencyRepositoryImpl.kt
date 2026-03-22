@@ -257,9 +257,43 @@ class EmergencyRepositoryImpl(
                 .document(emergencyId)
                 .collection("responses")
                 .document(uid)
-                .update("haLlegado", true)
+                .update("hasArrived", true)
                 .await()
             Result.success(Unit)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getRespondedEmergencyIds(uid: String): Result<Set<String>> {
+        return try {
+            val querySnapshot = firestore.collectionGroup("responses")
+                .whereEqualTo("uid", uid)
+                .get()
+                .await()
+            
+            val ids = querySnapshot.documents.mapNotNull { doc ->
+                // The parent document of a response is the emergency document
+                doc.reference.parent.parent?.id
+            }.toSet()
+            
+            Result.success(ids)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun checkIfUserResponded(emergencyId: String, uid: String): Result<Boolean> {
+        return try {
+            val doc = firestore.collection("emergencies")
+                .document(emergencyId)
+                .collection("responses")
+                .document(uid)
+                .get()
+                .await()
+            Result.success(doc.exists())
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             Result.failure(e)

@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,7 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.CellTower
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,8 +23,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.filled.CellTower
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jem.brigadadigital.presentation.emergency.EmergencyViewModel
@@ -42,6 +47,7 @@ fun HomeScreen(
 ) {
     val profileState by viewModel.profileState.collectAsStateWithLifecycle()
     val activeEmergencies by emergencyViewModel.allActiveEmergencies.collectAsStateWithLifecycle()
+    val pastEmergencies by emergencyViewModel.pastEmergencies.collectAsStateWithLifecycle()
     val responderCount by emergencyViewModel.allActiveRespondersCount.collectAsStateWithLifecycle()
     val availableCount by viewModel.availablePersonnelCount.collectAsStateWithLifecycle()
     
@@ -65,28 +71,50 @@ fun HomeScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Column {
-                        Text("Brigada Digital", fontWeight = FontWeight.Bold)
-                        if (profileState is ProfileState.Loaded) {
-                            val user = (profileState as ProfileState.Loaded).profile
-                            Text(
-                                text = user.cuartelId.ifEmpty { "Sin Destacamento" },
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                MaterialTheme.colorScheme.background
+                            )
+                        )
+                    )
+            ) {
+                LargeTopAppBar(
+                    title = {
+                        Column {
+                            Text("Brigada Digital", fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineLarge)
+                            if (profileState is ProfileState.Loaded) {
+                                val user = (profileState as ProfileState.Loaded).profile
+                                Text(
+                                    text = user.cuartelId.ifEmpty { "Sin Destacamento" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                    ),
+                    actions = {
+                        IconButton(onClick = { /* Future: Notifications */ }) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
-            )
+            }
         }
     ) { paddingValues ->
         when (val state = profileState) {
@@ -106,46 +134,58 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(paddingValues.calculateTopPadding()))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-
-                        MetricCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Alertas",
-                            value = activeEmergencies.size.toString(),
-                            subtitle = "En Curso",
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            icon = Icons.Default.Warning,
-                            onClick = onNavigateToActiveAlerts
-                        )
-
-                        MetricCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Personal",
-                            value = responderCount.toString(),
-                            subtitle = "En Movimiento",
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                            icon = Icons.Default.Groups,
-                            onClick = onNavigateToResponders
-                        )
-
-                        MetricCard(
-                            modifier = Modifier.weight(1f),
-                            title = "Disponibles",
-                            value = availableCount.toString(),
-                            subtitle = "En Cuartel",
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            icon = Icons.Default.Groups, // Could be PersonSearch if available
-                            onClick = { /* Could navigate to personnel list later */ }
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                title = "Alertas",
+                                value = activeEmergencies.size.toString(),
+                                subtitle = "En Curso",
+                                icon = Icons.Default.Warning,
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                onClick = onNavigateToActiveAlerts
+                            )
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                title = "Personal",
+                                value = responderCount.toString(),
+                                subtitle = "Activo",
+                                icon = Icons.Default.Groups,
+                                accentColor = MaterialTheme.colorScheme.secondary,
+                                onClick = onNavigateToResponders
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                title = "Disponibles",
+                                value = availableCount.toString(),
+                                subtitle = "En Cuartel",
+                                icon = Icons.Default.CellTower,
+                                accentColor = MaterialTheme.colorScheme.tertiary
+                            )
+                            MetricCard(
+                                modifier = Modifier.weight(1f),
+                                title = "Historial",
+                                value = pastEmergencies.size.toString(),
+                                subtitle = "Eventos",
+                                icon = Icons.Default.List,
+                                accentColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
+                                onClick = onNavigateToHistory
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     if (topAlerts.isNotEmpty()) {
                         Row(
@@ -185,19 +225,19 @@ fun HomeScreen(
 
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.9f),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.CellTower, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                            Icon(Icons.Default.CellTower, contentDescription = null, tint = Color.White)
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = "Vigilancia de Emergencias en Tiempo Real Activa",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = Color.White,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -236,47 +276,62 @@ fun MetricCard(
     title: String,
     value: String,
     subtitle: String,
-    containerColor: Color,
-    contentColor: Color,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accentColor: Color,
     onClick: () -> Unit = {}
 ) {
-    ElevatedCard(
-        modifier = modifier,
+    Card(
+        modifier = modifier.aspectRatio(1.1f), // Slightly less than square for better horizontal space
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
-        onClick = onClick
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = onClick,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = 0.7f),
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = contentColor
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = contentColor,
-                maxLines = 1
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = contentColor.copy(alpha = 0.8f)
-            )
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            // Icon Background Accent (Top Right)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = accentColor.copy(alpha = 0.15f),
+                modifier = Modifier
+                    .size(36.dp)
+                    .align(Alignment.TopEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.align(Alignment.BottomStart)
+            ) {
+                Text(
+                    text = title.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = accentColor.copy(alpha = 0.9f)
+                )
+            }
         }
     }
 }
@@ -286,14 +341,16 @@ fun AlertCarouselItem(
     alert: com.jem.brigadadigital.domain.model.EmergencyEvent,
     onClick: () -> Unit
 ) {
-    ElevatedCard(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(110.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            .height(130.dp),
+        shape = RoundedCornerShape(32.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
         onClick = onClick
     ) {
         Row(

@@ -5,9 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jem.brigadadigital.data.repository.EmergencyRepositoryImpl
 import com.jem.brigadadigital.domain.repository.EmergencyRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class EmergencyViewModel(
@@ -49,6 +47,9 @@ class EmergencyViewModel(
     private val _activeResponders = MutableStateFlow<List<com.jem.brigadadigital.domain.model.DetailedResponder>>(emptyList())
     val activeResponders: StateFlow<List<com.jem.brigadadigital.domain.model.DetailedResponder>> = _activeResponders.asStateFlow()
 
+    private val _respondedIds = MutableStateFlow<Set<String>>(emptySet())
+    val respondedIds: StateFlow<Set<String>> = _respondedIds.asStateFlow()
+
 
     data class AddressSuggestion(
         val display_name: String,
@@ -58,7 +59,16 @@ class EmergencyViewModel(
 
     fun initSession(user: com.jem.brigadadigital.domain.model.UserProfile) {
         currentUser = user
+        fetchRespondedIds(user.uid)
         restartObservers()
+    }
+
+    private fun fetchRespondedIds(uid: String) {
+        viewModelScope.launch {
+            emergencyRepository.getRespondedEmergencyIds(uid).onSuccess { ids ->
+                _respondedIds.value = ids
+            }
+        }
     }
 
     private fun restartObservers() {
@@ -77,14 +87,27 @@ class EmergencyViewModel(
 
     private fun observeEmergencies() {
         observeEmergenciesJob = viewModelScope.launch {
-            emergencyRepository.observeAllActiveEmergencies().collect { result ->
-                result.onSuccess { emergencies ->
+            combine(
+                emergencyRepository.observeAllActiveEmergencies(),
+                _respondedIds
+            ) { result, responded ->
+                Pair(result, responded)
+            }.collect { (result, responded) ->
+                result.onSuccess { list ->
                     val userCuartel = currentUser?.cuartelId ?: ""
-                    // La alerta activa primaria es la más reciente que sea global o de mi cuartel
-                    val myEmergencies = emergencies.filter { it.isGlobal || it.cuartelId == userCuartel }
-                    val active = myEmergencies.firstOrNull()
-                    if (active != null) {
-                        _emergencyState.value = EmergencyState.Active(active)
+                    val myEmergencies = list.filter { it.isGlobal || it.cuartelId == userCuartel }
+                    
+                    val unrespondedCandidate = myEmergencies.firstOrNull { !responded.contains(it.id) }
+                    
+                    if (unrespondedCandidate != null) {
+                        // Verificación puntual (Double-check) para evitar falsos positivos tras reinicio
+                        val trulyResponded = emergencyRepository.checkIfUserResponded(unrespondedCandidate.id, currentUser?.uid ?: "").getOrDefault(false)
+                        if (trulyResponded) {
+                            _respondedIds.value = _respondedIds.value + unrespondedCandidate.id
+                            _emergencyState.value = EmergencyState.Idle
+                        } else {
+                            _emergencyState.value = EmergencyState.Active(unrespondedCandidate)
+                        }
                     } else {
                         _emergencyState.value = EmergencyState.Idle
                     }
@@ -186,12 +209,15 @@ class EmergencyViewModel(
     fun respondToEmergency(emergencyId: String, uid: String, isGoing: Boolean) {
         viewModelScope.launch {
             val result = emergencyRepository.respondToEmergency(emergencyId, uid, isGoing)
-            if (result.isSuccess && isGoing) {
-                // TODO: In Phase 4, start foreground service for GPS tracking here
-            } else if (result.isSuccess && !isGoing) {
-                // Return to idle
-                _emergencyState.value = EmergencyState.Idle
-            } else if (result.isFailure) {
+            if (result.isSuccess) {
+                // Actualizar set local para descartar la alerta inmediatamente
+                _respondedIds.value = _respondedIds.value + emergencyId
+                if (isGoing) {
+                    // TODO: In Phase 4, start foreground service for GPS tracking here
+                } else {
+                    _emergencyState.value = EmergencyState.Idle
+                }
+            } else {
                 _errorMessage.value = "Error al responder: ${result.exceptionOrNull()?.message}"
             }
         }
