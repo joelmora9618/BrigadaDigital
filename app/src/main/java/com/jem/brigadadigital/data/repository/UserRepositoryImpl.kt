@@ -40,10 +40,10 @@ class UserRepositoryImpl(
         }
     }
 
-    override suspend fun updateAvailability(uid: String, isAvailable: Boolean): Result<Unit> {
+    override suspend fun updateAvailability(uid: String, disponible: Boolean): Result<Unit> {
         return try {
             firestore.collection("users").document(uid)
-                .update("isAvailable", isAvailable)
+                .update("disponible", disponible)
                 .await()
             Result.success(Unit)
         } catch (e: Exception) {

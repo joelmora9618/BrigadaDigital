@@ -155,7 +155,7 @@ fun SetupProfileScreen(
                         rango = selectedRango,
                         especialidad = selectedEspecialidad,
                         cuartelId = cuartelId,
-                        isAvailable = true // Defaults to available when completing profile
+                        disponible = true // Defaults to available when completing profile
                     )
                     viewModel.saveProfile(profile)
                 },

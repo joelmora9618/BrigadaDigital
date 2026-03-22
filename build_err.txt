@@ -1,0 +1,137 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:processDebugGoogleServices UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:stripDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+
+> Task :app:compileDebugKotlin FAILED
+e: org.jetbrains.kotlin.util.FileAnalysisException: While analysing C:/workspace/BrigadaDigital/app/src/main/java/com/jem/brigadadigital/MainActivity.kt:31:5: java.lang.IllegalArgumentException: source must not be null
+	at org.jetbrains.kotlin.util.AnalysisExceptionsKt.wrapIntoFileAnalysisExceptionIfNeeded(AnalysisExceptions.kt:57)
+	at org.jetbrains.kotlin.fir.FirCliExceptionHandler.handleExceptionOnFileAnalysis(Utils.kt:249)
+	at org.jetbrains.kotlin.fir.pipeline.AnalyseKt.runCheckers(analyse.kt:46)
+	at org.jetbrains.kotlin.fir.pipeline.FirUtilsKt.resolveAndCheckFir(firUtils.kt:77)
+	at org.jetbrains.kotlin.fir.pipeline.FirUtilsKt.buildResolveAndCheckFirViaLightTree(firUtils.kt:88)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.compileModuleToAnalyzedFir(jvmCompilerPipeline.kt:319)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.compileModulesUsingFrontendIrAndLightTree(jvmCompilerPipeline.kt:118)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:148)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:43)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:103)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:49)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:464)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:73)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:506)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:423)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:301)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:129)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:675)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:92)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1660)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+Caused by: java.lang.IllegalArgumentException: source must not be null
+	at org.jetbrains.kotlin.diagnostics.KtDiagnosticReportHelpersKt.requireNotNull(KtDiagnosticReportHelpers.kt:68)
+	at org.jetbrains.kotlin.diagnostics.KtDiagnosticReportHelpersKt.reportOn(KtDiagnosticReportHelpers.kt:39)
+	at org.jetbrains.kotlin.diagnostics.KtDiagnosticReportHelpersKt.reportOn$default(KtDiagnosticReportHelpers.kt:31)
+	at org.jetbrains.kotlin.fir.analysis.checkers.expression.FirIncompatibleClassExpressionChecker.checkSourceElement(FirIncompatibleClassExpressionChecker.kt:50)
+	at org.jetbrains.kotlin.fir.analysis.checkers.expression.FirIncompatibleClassExpressionChecker.checkType$checkers(FirIncompatibleClassExpressionChecker.kt:42)
+	at org.jetbrains.kotlin.fir.analysis.checkers.type.FirIncompatibleClassTypeChecker.check(FirIncompatibleClassTypeChecker.kt:17)
+	at org.jetbrains.kotlin.fir.analysis.collectors.components.TypeCheckersDiagnosticComponent.check(TypeCheckersDiagnosticComponent.kt:81)
+	at org.jetbrains.kotlin.fir.analysis.collectors.components.TypeCheckersDiagnosticComponent.visitResolvedTypeRef(TypeCheckersDiagnosticComponent.kt:53)
+	at org.jetbrains.kotlin.fir.analysis.collectors.components.TypeCheckersDiagnosticComponent.visitResolvedTypeRef(TypeCheckersDiagnosticComponent.kt:19)
+	at org.jetbrains.kotlin.fir.types.FirResolvedTypeRef.accept(FirResolvedTypeRef.kt:28)
+	at org.jetbrains.kotlin.fir.analysis.collectors.CheckerRunningDiagnosticCollectorVisitor.checkElement(CheckerRunningDiagnosticCollectorVisitor.kt:24)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitResolvedTypeRef(AbstractDiagnosticCollectorVisitor.kt:248)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitResolvedTypeRef(AbstractDiagnosticCollectorVisitor.kt:30)
+	at org.jetbrains.kotlin.fir.types.FirResolvedTypeRef.accept(FirResolvedTypeRef.kt:28)
+	at org.jetbrains.kotlin.fir.declarations.impl.FirSimpleFunctionImpl.acceptChildren(FirSimpleFunctionImpl.kt:63)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitNestedElements(AbstractDiagnosticCollectorVisitor.kt:38)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitWithDeclarationAndReceiver(AbstractDiagnosticCollectorVisitor.kt:311)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitSimpleFunction(AbstractDiagnosticCollectorVisitor.kt:118)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitSimpleFunction(AbstractDiagnosticCollectorVisitor.kt:30)
+	at org.jetbrains.kotlin.fir.declarations.FirSimpleFunction.accept(FirSimpleFunction.kt:51)
+	at org.jetbrains.kotlin.fir.declarations.impl.FirRegularClassImpl.acceptChildren(FirRegularClassImpl.kt:63)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitNestedElements(AbstractDiagnosticCollectorVisitor.kt:38)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitWithDeclarationAndReceiver(AbstractDiagnosticCollectorVisitor.kt:311)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitClassAndChildren(AbstractDiagnosticCollectorVisitor.kt:87)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitRegularClass(AbstractDiagnosticCollectorVisitor.kt:92)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitRegularClass(AbstractDiagnosticCollectorVisitor.kt:30)
+	at org.jetbrains.kotlin.fir.declarations.FirRegularClass.accept(FirRegularClass.kt:48)
+	at org.jetbrains.kotlin.fir.declarations.impl.FirFileImpl.acceptChildren(FirFileImpl.kt:57)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitNestedElements(AbstractDiagnosticCollectorVisitor.kt:38)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitFile(AbstractDiagnosticCollectorVisitor.kt:1151)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollectorVisitor.visitFile(AbstractDiagnosticCollectorVisitor.kt:30)
+	at org.jetbrains.kotlin.fir.declarations.FirFile.accept(FirFile.kt:42)
+	at org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollector.collectDiagnostics(AbstractDiagnosticCollector.kt:36)
+	at org.jetbrains.kotlin.fir.pipeline.AnalyseKt.runCheckers(analyse.kt:34)
+	... 33 more
+
+e: file:///C:/Users/jmora/.gradle/caches/8.13/transforms/22364c755d010ceb494879fb94c6dc21/transformed/kermit-debug-api.jar!/META-INF/kermit_debug.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/8.13/transforms/351d8875e08b23067ef2aefab8ea5ad0/transformed/kermit-core-debug-api.jar!/META-INF/kermit-core_debug.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/8.13/transforms/8f42395dc100e0163ee2f0c6778d59c2/transformed/maplibre-compose-api.jar!/META-INF/maplibre-compose.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.21/fa374a986e128314c3db00a20aae55f72a258511/kotlin-stdlib-2.2.21.jar!/META-INF/kotlin-stdlib-jdk7.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.21/fa374a986e128314c3db00a20aae55f72a258511/kotlin-stdlib-2.2.21.jar!/META-INF/kotlin-stdlib-jdk8.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.2.21/fa374a986e128314c3db00a20aae55f72a258511/kotlin-stdlib-2.2.21.jar!/META-INF/kotlin-stdlib.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-core-jvm/1.9.0/91448df39c558f7c6147b8bd8db01debe16e0cc1/kotlinx-serialization-core-jvm-1.9.0.jar!/META-INF/kotlinx-serialization-core.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-serialization-json-jvm/1.9.0/aea6f7d49fe5c458f8963ee6d4bdaf4a459ab3e7/kotlinx-serialization-json-jvm-1.9.0.jar!/META-INF/kotlinx-serialization-json.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+e: file:///C:/Users/jmora/.gradle/caches/modules-2/files-2.1/org.maplibre.spatialk/geojson-jvm/0.6.0/8f8155f57be9a565ddc5aa229a9ec456cd8c1fad/geojson-jvm-0.6.0.jar!/META-INF/geojson.kotlin_module Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Internal compiler error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 6s
+31 actionable tasks: 1 executed, 30 up-to-date

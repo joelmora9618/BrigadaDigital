@@ -65,9 +65,14 @@ class ProfileViewModel(
         }
     }
 
-    fun toggleAvailability(uid: String, isAvailable: Boolean) {
+    fun toggleAvailability(uid: String, disponible: Boolean) {
         viewModelScope.launch {
-            userRepository.updateAvailability(uid, isAvailable)
+            val result = userRepository.updateAvailability(uid, disponible)
+            result.onFailure { e ->
+                // Mostramos explícitamente el error en caso de que sea un problema de Permisos en Firestore
+                val errorMsg = e.message ?: "Error desconocido"
+                _profileState.value = ProfileState.Error("Fallo al actualizar estado. Verifica reglas Firestore: $errorMsg")
+            }
         }
     }
 

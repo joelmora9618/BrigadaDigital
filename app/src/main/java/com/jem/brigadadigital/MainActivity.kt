@@ -30,6 +30,10 @@ import com.jem.brigadadigital.ui.theme.BrigadaDigitalTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
+        
+        // Initialize MapLibre for native MapView support
+        org.maplibre.android.MapLibre.getInstance(this, null, org.maplibre.android.WellKnownTileServer.MapLibre)
+        
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
