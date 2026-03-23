@@ -79,7 +79,50 @@ fun BrigadaDashboardScreen(
         }
 
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            // CABECERA DEL INCIDENTE (Nueva)
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(12.dp)
+                        ) {}
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = emergency.tipo.uppercase(),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = emergency.titulo,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = emergency.direccion.ifEmpty { "Ubicación no especificada" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (emergency.descripcion.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = emergency.descripcion,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+
+            Box(modifier = Modifier.weight(0.9f).fillMaxWidth()) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { ctx ->
@@ -90,7 +133,6 @@ fun BrigadaDashboardScreen(
                                 map.uiSettings.isLogoEnabled = false
                                 map.uiSettings.isAttributionEnabled = false
                                 
-                                // Default inicial en Buenos Aires O Incidente si existe
                                 if (geoPoint != null && geoPoint.latitude != 0.0) {
                                     map.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude), 15.0))
                                 } else {
@@ -101,23 +143,98 @@ fun BrigadaDashboardScreen(
                     }
                 )
                 
-                // Overlay informativo
                 Card(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
-                    Text("Respondedores en Mapa: ${validResponders.size}", modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "Respondedores en Mapa: ${validResponders.size}", 
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), 
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
+
+            // LISTADO DE PERSONAL
+            Text(
+                "PERSONAL ASIGNADO",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.ExtraBold
+            )
             
-            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                items(uiState.responders) { responder ->
-                    ListItem(
-                        headlineContent = { Text("${responder.profile.nombre} ${responder.profile.apellido}") },
-                        supportingContent = { Text(if (responder.response.haLlegado) "EN EL LUGAR" else "EN CAMINO") },
-                        trailingContent = { Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = if (responder.response.haLlegado) Color.Green else Color.Gray) }
-                    )
-                    HorizontalDivider()
+            if (uiState.responders.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(48.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("No hay personal en camino todavía", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1.1f).fillMaxWidth()) {
+                    items(uiState.responders) { responder ->
+                        val hasLocation = responder.response.lastLocation != null && responder.response.lastLocation?.latitude != 0.0
+                        
+                        ListItem(
+                            headlineContent = { 
+                                Text(
+                                    "${responder.profile.nombre} ${responder.profile.apellido}",
+                                    fontWeight = FontWeight.Bold
+                                ) 
+                            },
+                            supportingContent = { 
+                                Column {
+                                    Text(
+                                        if (responder.response.haLlegado) "ARRIVED / EN EL LUGAR" else "EN ROUTE / EN CAMINO",
+                                        color = if (responder.response.haLlegado) Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (!hasLocation && !responder.response.haLlegado) {
+                                        Text("Sin ubicación GPS activa", style = MaterialTheme.typography.labelSmall, color = Color.Red.copy(alpha = 0.7f))
+                                    }
+                                }
+                            },
+                            trailingContent = { 
+                                Column(horizontalAlignment = Alignment.End) {
+                                    if (responder.eta != null) {
+                                        Text(
+                                            responder.eta, 
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Black,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle, 
+                                        contentDescription = null, 
+                                        tint = if (responder.response.haLlegado) Color(0xFF2E7D32) else Color.Gray.copy(alpha = 0.5f)
+                                    )
+                                }
+                            },
+                            leadingContent = {
+                                Surface(
+                                    modifier = Modifier.size(40.dp),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = responder.profile.nombre.take(1).uppercase(),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                    }
                 }
             }
         }

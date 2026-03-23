@@ -72,12 +72,14 @@ class DashboardViewModel(
         observeResponsesJob = viewModelScope.launch {
             emergencyRepo.observeEmergencyResponses(emergencyId).collectLatest { result ->
                 result.onSuccess { responses ->
-                    // Por cada respuesta, obtener el UserProfile para saber nombre y rango
-                    val combinedList = mutableListOf<ResponderData>()
-                    for (response in responses) {
-                        val profileResult = userRepo.getUserProfile(response.uid)
-                        val profile = profileResult.getOrNull() ?: UserProfile(uid = response.uid, nombre = "Desconocido")
-                        combinedList.add(ResponderData(profile, response))
+                    // Obtener todos los uids de una vez para fetch masivo
+                    val uids = responses.map { it.uid }
+                    val profilesResult = userRepo.getUserProfiles(uids)
+                    val profilesMap = profilesResult.getOrNull()?.associateBy { it.uid } ?: emptyMap()
+
+                    val combinedList = responses.map { response ->
+                        val profile = profilesMap[response.uid] ?: UserProfile(uid = response.uid, nombre = "Desconocido")
+                        ResponderData(profile, response)
                     }
                     _uiState.value = _uiState.value.copy(responders = combinedList)
                     fetchEtas(emergencyId, combinedList)

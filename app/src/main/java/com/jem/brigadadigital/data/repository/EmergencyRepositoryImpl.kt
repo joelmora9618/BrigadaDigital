@@ -257,7 +257,7 @@ class EmergencyRepositoryImpl(
                 .document(emergencyId)
                 .collection("responses")
                 .document(uid)
-                .update("hasArrived", true)
+                .update("haLlegado", true)
                 .await()
             Result.success(Unit)
         } catch (e: Exception) {
