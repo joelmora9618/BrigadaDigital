@@ -135,7 +135,8 @@ fun MainScreen(
                         onNavigateToDashboard = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Dashboard.createRoute()) },
                         onNavigateToHistory = { bottomNavController.navigate(BottomNavItem.AlertMap.route) },
                         onNavigateToActiveAlerts = onNavigateToActiveAlerts,
-                        onNavigateToResponders = onNavigateToResponders
+                        onNavigateToResponders = onNavigateToResponders,
+                        onNavigateToCreateEmergency = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.CreateEmergency.route) }
                     )
                 }
                 composable(BottomNavItem.AlertMap.route) {

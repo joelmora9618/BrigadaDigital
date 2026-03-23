@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +26,8 @@ import com.jem.brigadadigital.domain.model.UserProfile
 fun BrigadaDashboardScreen(
     viewModel: DashboardViewModel,
     currentUser: UserProfile,
-    onCloseIncidentClicked: (String) -> Unit
+    onCloseIncidentClicked: (String) -> Unit,
+    onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val emergency = uiState.activeEmergency
@@ -41,6 +44,11 @@ fun BrigadaDashboardScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Panel de Comando") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             )
         }
@@ -80,6 +88,22 @@ fun BrigadaDashboardScreen(
 
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             // CABECERA DEL INCIDENTE (Nueva)
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val openMaps = {
+                val lat = geoPoint?.latitude ?: 0.0
+                val lon = geoPoint?.longitude ?: 0.0
+                val intentUri = android.net.Uri.parse("google.navigation:q=$lat,$lon")
+                val mapIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, intentUri)
+                mapIntent.setPackage("com.google.android.apps.maps")
+                try {
+                    context.startActivity(mapIntent)
+                } catch (e: Exception) {
+                    // Fallback browser
+                    val fallbackUri = android.net.Uri.parse("https://www.google.com/maps/dir/?api=1&destination=$lat,$lon")
+                    context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, fallbackUri))
+                }
+            }
+
             Card(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)),
@@ -99,6 +123,17 @@ fun BrigadaDashboardScreen(
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.Bold
                         )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Button(
+                            onClick = openMaps,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(32.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Icon(imageVector = Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("COMO LLEGAR", style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                     Text(
                         text = emergency.titulo,
@@ -133,6 +168,13 @@ fun BrigadaDashboardScreen(
                                 map.uiSettings.isLogoEnabled = false
                                 map.uiSettings.isAttributionEnabled = false
                                 
+                                map.setOnInfoWindowClickListener { marker ->
+                                    if (marker.title == "INCIDENTE") {
+                                        openMaps()
+                                    }
+                                    true
+                                }
+
                                 if (geoPoint != null && geoPoint.latitude != 0.0) {
                                     map.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude), 15.0))
                                 } else {

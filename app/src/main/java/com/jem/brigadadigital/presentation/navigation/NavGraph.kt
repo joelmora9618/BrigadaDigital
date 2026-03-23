@@ -9,9 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -55,8 +60,10 @@ sealed class Screen(val route: String) {
     data object History : Screen("history")
     data object ActiveAlerts : Screen("active_alerts")
     data object ActiveResponders : Screen("active_responders")
+    data object CreateEmergency : Screen("create_emergency")
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MainNavGraph(
     navController: NavHostController = rememberNavController()
@@ -232,6 +239,9 @@ fun MainNavGraph(
                 currentUser = currentUser,
                 onCloseIncidentClicked = { id ->
                     navController.navigate(Screen.ClosureReport.createRoute(id))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -288,6 +298,33 @@ fun MainNavGraph(
                     navController.popBackStack()
                 }
             )
+        }
+
+        composable(Screen.CreateEmergency.route) {
+            val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
+            if (profileState is ProfileState.Loaded) {
+                val user = (profileState as ProfileState.Loaded).profile
+                
+                Scaffold(
+                    topBar = {
+                        CenterAlignedTopAppBar(
+                            title = { Text("Nueva Alerta SOS", fontWeight = FontWeight.Bold) },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            }
+                        )
+                    }
+                ) { pv ->
+                    com.jem.brigadadigital.presentation.dispatch.NewAlertForm(
+                        userProfile = user,
+                        emergencyViewModel = emergencyViewModel,
+                        paddingValues = pv,
+                        onOpenMapPicker = { navController.navigate(Screen.MapPicker.route) }
+                    )
+                }
+            }
         }
     }
 }
