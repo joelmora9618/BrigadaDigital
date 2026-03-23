@@ -221,7 +221,7 @@ fun HomeScreen(
                         HorizontalPager(
                             state = pagerState,
                             modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 0.dp),
+                            contentPadding = PaddingValues(start = 0.dp, end = 64.dp),
                             pageSpacing = 16.dp
                         ) { page ->
                             val alert = topAlerts[page]
@@ -229,6 +229,30 @@ fun HomeScreen(
                                 alert = alert,
                                 onClick = onNavigateToActiveAlerts
                             )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Pager Indicator Dots
+                        Row(
+                            Modifier
+                                .height(8.dp)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            repeat(topAlerts.size) { iteration ->
+                                val color = if (pagerState.currentPage == iteration) 
+                                    MaterialTheme.colorScheme.primary 
+                                else 
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                                    
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 4.dp)
+                                        .size(8.dp)
+                                        .background(color, RoundedCornerShape(4.dp))
+                                )
+                            }
                         }
                         
                         Spacer(modifier = Modifier.height(24.dp))

@@ -59,6 +59,38 @@ class EmergencyViewModel(
         relevant.any { it.id !in responded }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    // DRAFT STATE FOR PERSISTENCE (FASE 12)
+    private val _draftTitle = MutableStateFlow("")
+    val draftTitle = _draftTitle.asStateFlow()
+    
+    private val _draftDescription = MutableStateFlow("")
+    val draftDescription = _draftDescription.asStateFlow()
+    
+    private val _draftType = MutableStateFlow("Incendio")
+    val draftType = _draftType.asStateFlow()
+    
+    private val _draftIsGlobal = MutableStateFlow(false)
+    val draftIsGlobal = _draftIsGlobal.asStateFlow()
+
+    fun updateDraftTitle(value: String) { _draftTitle.value = value }
+    fun updateDraftDescription(value: String) { _draftDescription.value = value }
+    fun updateDraftType(value: String) { _draftType.value = value }
+    fun updateDraftIsGlobal(value: Boolean) { _draftIsGlobal.value = value }
+
+    // TAB PERSISTENCE (FASE 12)
+    private val _selectedTabRoute = MutableStateFlow("home_tab")
+    val selectedTabRoute = _selectedTabRoute.asStateFlow()
+    fun updateSelectedTab(route: String) { _selectedTabRoute.value = route }
+
+    private fun clearDrafts() {
+        _draftTitle.value = ""
+        _draftDescription.value = ""
+        _draftType.value = "Incendio"
+        _draftIsGlobal.value = false
+        _selectedPosition.value = null
+        _selectedAddress.value = null
+    }
+
 
     data class AddressSuggestion(
         val display_name: String,
@@ -132,8 +164,8 @@ class EmergencyViewModel(
         observeAllActiveEmergenciesJob = viewModelScope.launch {
             emergencyRepository.observeAllActiveEmergencies().collect { result ->
                 result.onSuccess { emergencies ->
-                    val userCuartel = currentUser?.cuartelId ?: ""
-                    _allActiveEmergencies.value = emergencies.filter { it.isGlobal || it.cuartelId == userCuartel }
+                    // REMOVIDO FILTRO DE CUARTEL: El mapa debe mostrar TODO lo que sucede en la Brigada
+                    _allActiveEmergencies.value = emergencies
                 }
             }
         }
@@ -352,8 +384,7 @@ class EmergencyViewModel(
                 ubicacion = ubicacion
             )
             emergencyRepository.createEmergency(event)
-            _selectedPosition.value = null // Reset position after creation
-            _selectedAddress.value = null
+            clearDrafts()
         }
     }
 

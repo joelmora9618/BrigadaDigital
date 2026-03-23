@@ -120,9 +120,13 @@ fun MainNavGraph(
                 }
 
                 LaunchedEffect(uid) {
-                    profileViewModel.resetState()
-                    emergencyViewModel.resetState()
-                    profileViewModel.checkUserProfile(uid)
+                    // Solo inicializar si no tenemos un perfil cargado para este usuario
+                    val currentProfile = (profileViewModel.profileState.value as? ProfileState.Loaded)?.profile
+                    if (currentProfile?.uid != uid) {
+                        profileViewModel.resetState()
+                        emergencyViewModel.resetState()
+                        profileViewModel.checkUserProfile(uid)
+                    }
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {

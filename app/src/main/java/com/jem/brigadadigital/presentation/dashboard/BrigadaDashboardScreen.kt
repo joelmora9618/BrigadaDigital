@@ -1,5 +1,6 @@
 package com.jem.brigadadigital.presentation.dashboard
 
+import androidx.compose.animation.core.animate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jem.brigadadigital.domain.model.UserProfile
 
@@ -26,6 +28,14 @@ fun BrigadaDashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val emergency = uiState.activeEmergency
+    var maplibreMap by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
+
+    // Filtro de respondedores válidos
+    val validResponders = remember(uiState.responders) {
+        uiState.responders.filter { 
+            it.response.lastLocation != null && it.response.lastLocation!!.latitude != 0.0 && it.response.lastLocation!!.longitude != 0.0 
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -35,172 +45,79 @@ fun BrigadaDashboardScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        if (uiState.isLoading || emergency == null) {
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                if (uiState.isLoading) CircularProgressIndicator() else Text("No hay emergencias activas.")
             }
             return@Scaffold
         }
 
-        if (emergency == null) {
-            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Text("No hay emergencias activas en este momento.")
-            }
-            return@Scaffold
-        }
-
-        var maplibreMap by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
-
-        // Gestor de marcadores nativos
-        LaunchedEffect(uiState.responders, maplibreMap, emergency.ubicacion) {
+        val geoPoint = emergency.ubicacion
+        
+        // CÁMARA DINÁMICA
+        LaunchedEffect(geoPoint, maplibreMap) {
             val map = maplibreMap ?: return@LaunchedEffect
-            val geoPoint = emergency.ubicacion
+            if (geoPoint != null && geoPoint.latitude != 0.0) {
+                map.animateCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude), 15.0), 1000)
+            }
+        }
+
+        // GESTIÓN DE MARCADORES (Legacy + GeoJSON)
+        LaunchedEffect(validResponders, geoPoint, maplibreMap) {
+            val map = maplibreMap ?: return@LaunchedEffect
             
-            // Limpiar marcadores anteriores (anotaciones)
-            // Nota: Esto limpia TODAS las anotaciones. Si hay rutas, también se irían.
+            // 1. Legacy Markers (Inmediatos)
             map.clear()
-            
-            // 1. Añadir Marcador del Incidente
-            if (geoPoint != null) {
-                map.addMarker(
-                    org.maplibre.android.annotations.MarkerOptions()
-                        .position(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude))
-                        .title("INCIDENTE: ${emergency.titulo}")
-                )
+            if (geoPoint != null && geoPoint.latitude != 0.0) {
+                map.addMarker(org.maplibre.android.annotations.MarkerOptions().position(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude)).title("INCIDENTE"))
             }
-            
-            // 2. Añadir Marcadores de Bomberos
-            uiState.responders.filter { it.response.lastLocation != null }.forEach { resp ->
-                val loc = resp.response.lastLocation!!
-                map.addMarker(
-                    org.maplibre.android.annotations.MarkerOptions()
-                        .position(org.maplibre.android.geometry.LatLng(loc.latitude, loc.longitude))
-                        .title(resp.profile.nombre)
-                        .snippet(if (resp.response.haLlegado) "EN EL LUGAR" else "EN CAMINO")
-                )
+            validResponders.forEach { 
+                map.addMarker(org.maplibre.android.annotations.MarkerOptions().position(org.maplibre.android.geometry.LatLng(it.response.lastLocation!!.latitude, it.response.lastLocation!!.longitude)).title(it.profile.nombre))
             }
+
+            // 3. Círculos removidos por petición del usuario (ya se ven los marcadores estándar)
         }
 
         Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            // Mapa de Flota (Top Half)
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                val geoPoint = emergency.ubicacion
-                
-                androidx.compose.ui.viewinterop.AndroidView(
+                AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { ctx ->
                         org.maplibre.android.maps.MapView(ctx).apply {
                             getMapAsync { map ->
                                 maplibreMap = map
                                 map.setStyle("https://tiles.openfreemap.org/styles/liberty")
+                                map.uiSettings.isLogoEnabled = false
+                                map.uiSettings.isAttributionEnabled = false
                                 
-                                if (geoPoint != null) {
-                                    map.moveCamera(
-                                        org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
-                                            org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude),
-                                            15.0
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    update = { view ->
-                        // Re-centrar si cambia el geoPoint (desde el ViewModel)
-                        maplibreMap?.let { map ->
-                            if (geoPoint != null) {
-                                val currentTarget = map.cameraPosition?.target
-                                val sameLocation = currentTarget?.latitude == geoPoint.latitude && 
-                                                 currentTarget?.longitude == geoPoint.longitude
-                                if (!sameLocation) {
-                                    map.moveCamera(
-                                        org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
-                                            org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude),
-                                            15.0
-                                        )
-                                    )
+                                // Default inicial en Buenos Aires O Incidente si existe
+                                if (geoPoint != null && geoPoint.latitude != 0.0) {
+                                    map.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude), 15.0))
+                                } else {
+                                    map.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(-34.6037, -58.3816), 11.0))
                                 }
                             }
                         }
                     }
                 )
                 
-                // Overlay de cantidad de respondedores flotante
-                ElevatedCard(
+                // Overlay informativo
+                Card(
                     modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp),
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha=0.95f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
                 ) {
-                    Text(
-                        text = "En Camino: ${uiState.responders.size}",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                
-                // Botón Flotante para Finalizar Misión
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 24.dp)
-                ) {
-                    if (currentUser.role == "admin" || currentUser.role == "jefe") {
-                        ExtendedFloatingActionButton(
-                            onClick = { onCloseIncidentClicked(emergency.id) },
-                            icon = { Icon(Icons.Filled.Warning, contentDescription = null) },
-                            text = { Text("FINALIZAR MISIÓN") },
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        )
-                    } else {
-                        ExtendedFloatingActionButton(
-                            onClick = { onCloseIncidentClicked(emergency.id) },
-                            icon = { Icon(Icons.Filled.Warning, contentDescription = null) },
-                            text = { Text("FINALIZAR (Demo)") },
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        )
-                    }
+                    Text("Respondedores en Mapa: ${validResponders.size}", modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.labelMedium)
                 }
             }
-
-            // Lista de Personal (Bottom Half)
-            Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "Personal de Respuesta",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp)
+            
+            LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                items(uiState.responders) { responder ->
+                    ListItem(
+                        headlineContent = { Text("${responder.profile.nombre} ${responder.profile.apellido}") },
+                        supportingContent = { Text(if (responder.response.haLlegado) "EN EL LUGAR" else "EN CAMINO") },
+                        trailingContent = { Icon(imageVector = Icons.Filled.CheckCircle, contentDescription = null, tint = if (responder.response.haLlegado) Color.Green else Color.Gray) }
                     )
-                }
-                
-                LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    items(uiState.responders) { responder ->
-                        ListItem(
-                            headlineContent = { Text("${responder.profile.nombre} ${responder.profile.apellido}", fontWeight = FontWeight.Bold) },
-                            supportingContent = { 
-                                val statusText = if (responder.response.haLlegado) "EN EL LUGAR" else "EN CAMINO"
-                                Text("Estado: $statusText | ETA: ${responder.eta ?: "Calculando..."}") 
-                            },
-                            trailingContent = {
-                                val iconColor = if (responder.response.haLlegado) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline
-                                Icon(
-                                    imageVector = Icons.Filled.CheckCircle,
-                                    contentDescription = "Estado",
-                                    tint = iconColor
-                                )
-                            }
-                        )
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                    }
+                    HorizontalDivider()
                 }
             }
         }

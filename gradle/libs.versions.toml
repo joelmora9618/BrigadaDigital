@@ -16,6 +16,8 @@ playServicesLocation = "21.3.0"
 maplibreCompose = "0.12.1"
 coil = "2.7.0"
 
+
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
@@ -42,6 +44,8 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 maplibre-compose = { group = "org.maplibre.compose", name = "maplibre-compose", version.ref = "maplibreCompose" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

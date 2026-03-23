@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jem.brigadadigital.domain.model.UserProfile
 import com.jem.brigadadigital.presentation.auth.AuthViewModel
 import com.jem.brigadadigital.presentation.dispatch.DispatchScreen
@@ -66,6 +67,21 @@ fun MainScreen(
         BottomNavItem.Profile
     )
 
+    val selectedTabRoute by emergencyViewModel.selectedTabRoute.collectAsStateWithLifecycle()
+
+    // Sincronizar navegación al recrear MainScreen (FASE 12)
+    LaunchedEffect(Unit) {
+        if (bottomNavController.currentDestination?.route != selectedTabRoute) {
+            bottomNavController.navigate(selectedTabRoute) {
+                popUpTo(bottomNavController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = {
             val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -88,6 +104,7 @@ fun MainScreen(
                         label = { Text(item.title, style = MaterialTheme.typography.labelSmall) },
                         selected = isSelected,
                         onClick = {
+                            emergencyViewModel.updateSelectedTab(item.route)
                             bottomNavController.navigate(item.route) {
                                 popUpTo(bottomNavController.graph.findStartDestination().id) {
                                     saveState = true

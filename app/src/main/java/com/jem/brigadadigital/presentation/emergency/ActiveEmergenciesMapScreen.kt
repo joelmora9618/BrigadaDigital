@@ -3,18 +3,17 @@ package com.jem.brigadadigital.presentation.emergency
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.jem.brigadadigital.domain.model.EmergencyEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,50 +23,65 @@ fun ActiveEmergenciesMapScreen(
 ) {
     val activeEmergencies by viewModel.allActiveEmergencies.collectAsStateWithLifecycle()
     var maplibreMap by remember { mutableStateOf<org.maplibre.android.maps.MapLibreMap?>(null) }
-    val context = LocalContext.current
+    
+    // Filtro de coordenadas válidas
+    val validAlerts = remember(activeEmergencies) {
+        activeEmergencies.filter { 
+            it.ubicacion != null && it.ubicacion!!.latitude != 0.0 && it.ubicacion!!.longitude != 0.0 
+        }
+    }
 
-    // Gestor de marcadores nativos
-    LaunchedEffect(activeEmergencies, maplibreMap) {
+    // Centrar automáticamente
+    LaunchedEffect(validAlerts, maplibreMap) {
         val map = maplibreMap ?: return@LaunchedEffect
-        map.clear()
-        
-        activeEmergencies.forEach { emergency ->
-            val geoPoint = emergency.ubicacion
-            if (geoPoint != null) {
-                map.addMarker(
-                    org.maplibre.android.annotations.MarkerOptions()
-                        .position(org.maplibre.android.geometry.LatLng(geoPoint.latitude, geoPoint.longitude))
-                        .title(emergency.titulo)
-                        .snippet(emergency.tipo)
-                )
+        if (validAlerts.isNotEmpty()) {
+            val builder = org.maplibre.android.geometry.LatLngBounds.Builder()
+            validAlerts.forEach { builder.include(org.maplibre.android.geometry.LatLng(it.ubicacion!!.latitude, it.ubicacion!!.longitude)) }
+            try {
+                if (validAlerts.size > 1) {
+                    map.animateCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngBounds(builder.build(), 150), 1000)
+                } else {
+                    val first = validAlerts.first()
+                    map.animateCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(first.ubicacion!!.latitude, first.ubicacion!!.longitude), 14.0), 800)
+                }
+            } catch (e: Exception) {
+                map.animateCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(-34.6037, -58.3816), 11.0), 800)
             }
         }
+    }
 
-        // Listener para clics en marcadores
-        map.setOnMarkerClickListener { marker ->
-            // Buscar la emergencia correspondiente por título y posición (Hack ya que Marker no guarda ID directamente en API básica)
-            val clickedEmergency = activeEmergencies.find { 
-                it.titulo == marker.title && 
-                it.ubicacion?.latitude == marker.position.latitude && 
-                it.ubicacion?.longitude == marker.position.longitude 
-            }
-            clickedEmergency?.let { onNavigateToDashboard(it.id) }
-            true
+    // Marcadores Redundantes
+    LaunchedEffect(validAlerts, maplibreMap) {
+        val map = maplibreMap ?: return@LaunchedEffect
+        
+        map.clear()
+        validAlerts.forEach { emergency ->
+            map.addMarker(org.maplibre.android.annotations.MarkerOptions()
+                .position(org.maplibre.android.geometry.LatLng(emergency.ubicacion!!.latitude, emergency.ubicacion!!.longitude))
+                .title(emergency.titulo))
         }
+            // 2. Círculos removidos por petición del usuario (ya se ven los marcadores estándar)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mapa de Alertas Activas", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                title = { Text("Mapa de la Brigada", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E), titleContentColor = Color.White)
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    maplibreMap?.animateCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(-34.6037, -58.3816), 11.0))
+                },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.MyLocation, contentDescription = "Recenter")
+            }
         }
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
@@ -75,59 +89,43 @@ fun ActiveEmergenciesMapScreen(
                         getMapAsync { map ->
                             maplibreMap = map
                             map.setStyle("https://tiles.openfreemap.org/styles/liberty")
+                            map.uiSettings.isLogoEnabled = false
+                            map.uiSettings.isAttributionEnabled = false
                             
-                            // Si hay alertas, centrar en la primera
-                            if (activeEmergencies.isNotEmpty()) {
-                                activeEmergencies.firstOrNull { it.ubicacion != null }?.let { emergency ->
-                                    map.animateCamera(
-                                        org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(
-                                            org.maplibre.android.geometry.LatLng(
-                                                emergency.ubicacion!!.latitude,
-                                                emergency.ubicacion!!.longitude
-                                            ),
-                                            12.0
-                                        )
-                                    )
-                                }
+                            map.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(org.maplibre.android.geometry.LatLng(-34.6037, -58.3816), 11.0))
+                            
+                            map.setOnMarkerClickListener { marker ->
+                                val emergency = validAlerts.find { it.titulo == marker.title }
+                                if (emergency != null) onNavigateToDashboard(emergency.id)
+                                true
                             }
                         }
                     }
                 }
             )
 
-            if (activeEmergencies.isEmpty()) {
+            // Info Card Mejorada
+            Column(modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
                 Card(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)),
-                    shape = RoundedCornerShape(32.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
                 ) {
-                    Text(
-                        text = "Vigilancia Activa: No hay alertas en curso",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White
-                    )
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(text = "Total Activas: ${activeEmergencies.size}", style = MaterialTheme.typography.labelMedium)
+                        Text(text = "En Mapa: ${validAlerts.size}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    }
                 }
-            } else {
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.95f)),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
-                ) {
-                    Text(
-                        text = "Alertas Activas: ${activeEmergencies.size}",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.White
-                    )
+                
+                if (validAlerts.size < activeEmergencies.size) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Hay alertas sin ubicación asignada", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 }
             }
         }

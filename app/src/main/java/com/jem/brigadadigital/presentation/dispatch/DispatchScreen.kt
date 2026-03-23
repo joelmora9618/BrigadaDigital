@@ -121,18 +121,21 @@ fun NewAlertForm(
     paddingValues: PaddingValues,
     onOpenMapPicker: () -> Unit
 ) {
-    var titulo by remember { mutableStateOf("") }
-    var direccion by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-    var tipoSeleccionado by remember { mutableStateOf("Incendio") }
-    var isGlobal by remember { mutableStateOf(false) }
-    val tipos = listOf("Incendio", "Accidente", "Rescate", "Servicio Especial")
     val context = LocalContext.current
-
     val suggestions by emergencyViewModel.suggestions.collectAsStateWithLifecycle()
     val selectedPos by emergencyViewModel.selectedPosition.collectAsStateWithLifecycle()
     val selectedAddress by emergencyViewModel.selectedAddress.collectAsStateWithLifecycle()
+
+    // BINDING TO VIEWMODEL PERSISTENT STATE
+    val titulo by emergencyViewModel.draftTitle.collectAsStateWithLifecycle()
+    val descripcion by emergencyViewModel.draftDescription.collectAsStateWithLifecycle()
+    val tipoSeleccionado by emergencyViewModel.draftType.collectAsStateWithLifecycle()
+    val isGlobal by emergencyViewModel.draftIsGlobal.collectAsStateWithLifecycle()
+
+    var expanded by remember { mutableStateOf(false) }
+    val tipos = listOf("Incendio", "Accidente", "Rescate", "Servicio Especial")
+    
+    var direccion by remember { mutableStateOf("") }
 
     LaunchedEffect(selectedAddress) {
         if (selectedAddress != null) {
@@ -171,7 +174,7 @@ fun NewAlertForm(
 
         OutlinedTextField(
             value = titulo,
-            onValueChange = { titulo = it },
+            onValueChange = { emergencyViewModel.updateDraftTitle(it) },
             label = { Text("Título Corto (Ej: Siniestro Vial Ruta 2)") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
@@ -202,7 +205,7 @@ fun NewAlertForm(
                     DropdownMenuItem(
                         text = { Text(selectionOption) },
                         onClick = {
-                            tipoSeleccionado = selectionOption
+                            emergencyViewModel.updateDraftType(selectionOption)
                             expanded = false
                         }
                     )
@@ -255,7 +258,7 @@ fun NewAlertForm(
         
         OutlinedTextField(
             value = descripcion,
-            onValueChange = { descripcion = it },
+            onValueChange = { emergencyViewModel.updateDraftDescription(it) },
             label = { Text("Información Adicional (Opcional)") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3
@@ -284,7 +287,7 @@ fun NewAlertForm(
             }
             Switch(
                 checked = isGlobal,
-                onCheckedChange = { isGlobal = it },
+                onCheckedChange = { emergencyViewModel.updateDraftIsGlobal(it) },
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.error,
                     checkedTrackColor = MaterialTheme.colorScheme.errorContainer
@@ -299,8 +302,14 @@ fun NewAlertForm(
                     return@Button
                 }
                 
-                val lat = selectedPos?.latitude
-                val lon = selectedPos?.longitude
+                val pos = selectedPos
+                val lat = pos?.latitude
+                val lon = pos?.longitude
+
+                if (lat == null || lon == null) {
+                    Toast.makeText(context, "Asigne una ubicación en el mapa primero", Toast.LENGTH_LONG).show()
+                    return@Button
+                }
                 
                 emergencyViewModel.createEmergency(
                     titulo = titulo.uppercase(),
@@ -315,18 +324,20 @@ fun NewAlertForm(
                 val msg = if (isGlobal) "ALERTA GLOBAL ENVIADA A TODA LA BRIGADA" else "ALERTA LOCAL DESPACHADA (${userProfile.cuartelId})"
                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 
-                titulo = ""
                 direccion = ""
-                descripcion = ""
             },
+            enabled = selectedPos != null,
             modifier = Modifier.fillMaxWidth().height(60.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                disabledContainerColor = Color.Gray.copy(alpha = 0.5f)
+            ),
             shape = RoundedCornerShape(16.dp)
         ) {
             Icon(if (isGlobal) Icons.Filled.Warning else Icons.Filled.Send, contentDescription = "Siren")
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = if (isGlobal) "LANZAR ALERTA GLOBAL" else "LANZAR ALERTA LOCAL",
+                text = if (selectedPos == null) "FALTA UBICACIÓN" else if (isGlobal) "LANZAR ALERTA GLOBAL" else "LANZAR ALERTA LOCAL",
                 fontWeight = FontWeight.ExtraBold,
                 style = MaterialTheme.typography.titleMedium
             )
