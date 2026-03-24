@@ -6,9 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jem.brigadadigital.data.repository.MovilRepositoryImpl
 import com.jem.brigadadigital.domain.model.Movil
 import com.jem.brigadadigital.domain.repository.MovilRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MovilViewModel(
@@ -21,29 +19,43 @@ class MovilViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
     fun observeMoviles(cuartelId: String) {
         if (cuartelId.isEmpty()) return
         viewModelScope.launch {
             _isLoading.value = true
-            repository.observeMovilesByCuartel(cuartelId).collect { result ->
-                _isLoading.value = false
-                result.onSuccess { list ->
-                    _moviles.value = list
+            repository.observeMovilesByCuartel(cuartelId)
+                .catch { _isLoading.value = false }
+                .collect { result ->
+                    _isLoading.value = false
+                    result.onSuccess { list ->
+                        _moviles.value = list
+                    }
                 }
-            }
         }
     }
 
     fun addMovil(nombre: String, tipo: String, patente: String, cuartelId: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             val nuevoMovil = Movil(
                 nombre = nombre,
                 tipo = tipo,
                 patente = patente,
                 cuartelId = cuartelId
             )
-            repository.addMovil(nuevoMovil)
+            val result = repository.addMovil(nuevoMovil)
+            _isLoading.value = false
+            result.onFailure { e ->
+                _error.value = "Fallo al guardar móvil: ${e.message}"
+            }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }
 

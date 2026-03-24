@@ -55,13 +55,21 @@ fun HomeScreen(
     onNavigateToResponders: () -> Unit,
     onNavigateToCreateEmergency: () -> Unit,
     onNavigateToAvailablePersonnel: () -> Unit,
-    onNavigateToMoviles: () -> Unit
+    onNavigateToMoviles: () -> Unit,
+    movilViewModel: com.jem.brigadadigital.presentation.movil.MovilViewModel
 ) {
     val profileState by viewModel.profileState.collectAsStateWithLifecycle()
     val activeEmergencies by emergencyViewModel.allActiveEmergencies.collectAsStateWithLifecycle()
     val pastEmergencies by emergencyViewModel.pastEmergencies.collectAsStateWithLifecycle()
     val responderCount by emergencyViewModel.allActiveRespondersCount.collectAsStateWithLifecycle()
     val availableCount by viewModel.availablePersonnelCount.collectAsStateWithLifecycle()
+    val moviles by movilViewModel.moviles.collectAsStateWithLifecycle()
+
+    LaunchedEffect(profileState) {
+        if (profileState is ProfileState.Loaded) {
+            movilViewModel.observeMoviles((profileState as ProfileState.Loaded).profile.cuartelId)
+        }
+    }
     
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val topAlerts = remember(activeEmergencies) { activeEmergencies.take(5) }
@@ -403,7 +411,7 @@ fun HomeScreen(
                             ActionCard(
                                 modifier = Modifier.weight(1f),
                                 title = "Móviles",
-                                value = "",
+                                value = moviles.size.toString(),
                                 icon = Icons.Default.DirectionsCar,
                                 backgroundColor = Color(0xFF5C6BC0),
                                 onClick = onNavigateToMoviles

@@ -175,7 +175,8 @@ fun MainNavGraph(
                                 authViewModel = authViewModel,
                                 parentNavController = navController,
                                 onNavigateToActiveAlerts = { navController.navigate(Screen.ActiveAlerts.route) },
-                                onNavigateToResponders = { navController.navigate(Screen.ActiveResponders.route) }
+                                onNavigateToResponders = { navController.navigate(Screen.ActiveResponders.route) },
+                                movilViewModel = movilViewModel
                             )
                         }
                         is ProfileState.Error -> {

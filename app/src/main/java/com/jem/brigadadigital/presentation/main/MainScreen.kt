@@ -51,7 +51,8 @@ fun MainScreen(
     authViewModel: AuthViewModel,
     parentNavController: NavHostController, // To navigate to Dashboard or external screens
     onNavigateToActiveAlerts: () -> Unit,
-    onNavigateToResponders: () -> Unit
+    onNavigateToResponders: () -> Unit,
+    movilViewModel: com.jem.brigadadigital.presentation.movil.MovilViewModel
 ) {
     val bottomNavController = rememberNavController()
     
@@ -145,7 +146,8 @@ fun MainScreen(
                         onNavigateToResponders = onNavigateToResponders,
                         onNavigateToCreateEmergency = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.CreateEmergency.route) },
                         onNavigateToAvailablePersonnel = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.AvailablePersonnel.route) },
-                        onNavigateToMoviles = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Moviles.route) }
+                        onNavigateToMoviles = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Moviles.route) },
+                        movilViewModel = movilViewModel
                     )
                 }
                 composable(BottomNavItem.AlertMap.route) {
