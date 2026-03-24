@@ -10,4 +10,5 @@ interface UserRepository {
     fun observeUserProfile(uid: String): Flow<Result<UserProfile?>>
     suspend fun getUserProfiles(uids: List<String>): Result<List<UserProfile>>
     fun observeAvailablePersonnel(cuartelId: String): Flow<Result<Int>>
+    fun observeAvailablePersonnelList(cuartelId: String): Flow<Result<List<UserProfile>>>
 }

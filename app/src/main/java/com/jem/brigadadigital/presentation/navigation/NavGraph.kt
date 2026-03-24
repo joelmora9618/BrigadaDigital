@@ -33,7 +33,9 @@ import com.jem.brigadadigital.presentation.emergency.EmergencyState
 import com.jem.brigadadigital.presentation.emergency.EmergencyViewModel
 import com.jem.brigadadigital.presentation.emergency.EmergencyViewModelFactory
 import com.jem.brigadadigital.presentation.home.HomeScreen
-import com.jem.brigadadigital.presentation.profile.ProfileState
+import com.jem.brigadadigital.presentation.profile.*
+import com.jem.brigadadigital.presentation.movil.*
+import com.jem.brigadadigital.presentation.emergency.*
 import com.jem.brigadadigital.presentation.profile.ProfileViewModel
 import com.jem.brigadadigital.presentation.profile.ProfileViewModelFactory
 import com.jem.brigadadigital.presentation.profile.SetupProfileScreen
@@ -61,6 +63,8 @@ sealed class Screen(val route: String) {
     data object ActiveAlerts : Screen("active_alerts")
     data object ActiveResponders : Screen("active_responders")
     data object CreateEmergency : Screen("create_emergency")
+    data object AvailablePersonnel : Screen("available_personnel")
+    data object Moviles : Screen("moviles")
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -71,6 +75,7 @@ fun MainNavGraph(
     val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory())
     val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
     val emergencyViewModel: EmergencyViewModel = viewModel(factory = EmergencyViewModelFactory())
+    val movilViewModel: MovilViewModel = viewModel(factory = MovilViewModelFactory())
 
     NavHost(
         navController = navController,
@@ -325,6 +330,36 @@ fun MainNavGraph(
                     )
                 }
             }
+        }
+
+        composable(Screen.History.route) {
+            com.jem.brigadadigital.presentation.history.HistoryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.AvailablePersonnel.route) {
+            com.jem.brigadadigital.presentation.emergency.AvailablePersonnelScreen(
+                viewModel = profileViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Moviles.route) {
+            val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
+            val cuartelId = (profileState as? com.jem.brigadadigital.presentation.profile.ProfileState.Loaded)?.profile?.cuartelId ?: ""
+            
+            com.jem.brigadadigital.presentation.movil.MovilListScreen(
+                viewModel = movilViewModel,
+                cuartelId = cuartelId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

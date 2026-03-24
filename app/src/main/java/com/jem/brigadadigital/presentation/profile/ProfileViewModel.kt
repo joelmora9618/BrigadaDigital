@@ -6,9 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jem.brigadadigital.data.repository.UserRepositoryImpl
 import com.jem.brigadadigital.domain.model.UserProfile
 import com.jem.brigadadigital.domain.repository.UserRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ProfileViewModel(
@@ -18,8 +16,19 @@ class ProfileViewModel(
     private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Idle)
     val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
 
-    private val _availablePersonnelCount = MutableStateFlow(0)
-    val availablePersonnelCount: StateFlow<Int> = _availablePersonnelCount.asStateFlow()
+    private val _rawAvailablePersonnelList = MutableStateFlow<List<UserProfile>>(emptyList())
+    private val _activeResponderUids = MutableStateFlow<Set<String>>(emptySet())
+
+    val availablePersonnelList: StateFlow<List<UserProfile>> = combine(
+        _rawAvailablePersonnelList,
+        _activeResponderUids
+    ) { rawList, activeUids ->
+        rawList.filter { it.uid !in activeUids }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val availablePersonnelCount: StateFlow<Int> = availablePersonnelList
+        .map { it.size }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     private var observeAvailableJob: kotlinx.coroutines.Job? = null
 
@@ -87,18 +96,23 @@ class ProfileViewModel(
         if (cuartelId.isEmpty()) return
         observeAvailableJob?.cancel()
         observeAvailableJob = viewModelScope.launch {
-            userRepository.observeAvailablePersonnel(cuartelId).collect { result ->
-                result.onSuccess { count ->
-                    _availablePersonnelCount.value = count
+            userRepository.observeAvailablePersonnelList(cuartelId).collect { result ->
+                result.onSuccess { list ->
+                    _rawAvailablePersonnelList.value = list
                 }
             }
         }
     }
 
+    fun setActiveResponders(uids: Set<String>) {
+        _activeResponderUids.value = uids
+    }
+
     fun resetState() {
         observeAvailableJob?.cancel()
         _profileState.value = ProfileState.Idle
-        _availablePersonnelCount.value = 0
+        _rawAvailablePersonnelList.value = emptyList()
+        _activeResponderUids.value = emptySet()
     }
 }
 

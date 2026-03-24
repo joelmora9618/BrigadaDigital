@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.LocationOn
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.viewinterop.AndroidView
@@ -51,7 +53,9 @@ fun HomeScreen(
     onNavigateToHistory: () -> Unit,
     onNavigateToActiveAlerts: () -> Unit,
     onNavigateToResponders: () -> Unit,
-    onNavigateToCreateEmergency: () -> Unit
+    onNavigateToCreateEmergency: () -> Unit,
+    onNavigateToAvailablePersonnel: () -> Unit,
+    onNavigateToMoviles: () -> Unit
 ) {
     val profileState by viewModel.profileState.collectAsStateWithLifecycle()
     val activeEmergencies by emergencyViewModel.allActiveEmergencies.collectAsStateWithLifecycle()
@@ -337,14 +341,13 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth().height(100.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF24273F))
-                            ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            ) {                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                     Text("No hay alertas activas", color = Color.White.copy(alpha = 0.5f))
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(28.dp))
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // ACTION GRID (2x2)
                         Row(modifier = Modifier.fillMaxWidth()) {
@@ -354,7 +357,7 @@ fun HomeScreen(
                                 value = availableCount.toString(),
                                 icon = Icons.Default.LocationOn,
                                 backgroundColor = Color(0xFF26C6DA),
-                                onClick = onNavigateToResponders
+                                onClick = onNavigateToAvailablePersonnel
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             ActionCard(
@@ -363,7 +366,7 @@ fun HomeScreen(
                                 value = responderCount.toString(),
                                 icon = Icons.Default.Security,
                                 backgroundColor = Color(0xFF66BB6A),
-                                onClick = { /* Unassigned */ }
+                                onClick = onNavigateToResponders
                             )
                         }
                         Spacer(modifier = Modifier.height(16.dp))
@@ -384,6 +387,26 @@ fun HomeScreen(
                                 icon = Icons.Default.History,
                                 backgroundColor = Color(0xFF880E4F),
                                 onClick = onNavigateToHistory
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            ActionCard(
+                                modifier = Modifier.weight(1f),
+                                title = "Guardias",
+                                value = "",
+                                icon = Icons.Default.CalendarToday,
+                                backgroundColor = Color(0xFF7E57C2),
+                                onClick = { /* Por implementar */ }
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            ActionCard(
+                                modifier = Modifier.weight(1f),
+                                title = "Móviles",
+                                value = "",
+                                icon = Icons.Default.DirectionsCar,
+                                backgroundColor = Color(0xFF5C6BC0),
+                                onClick = onNavigateToMoviles
                             )
                         }
 
@@ -409,7 +432,7 @@ fun AlertCarouselItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp),
+            .height(110.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF24273F)),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
@@ -418,7 +441,7 @@ fun AlertCarouselItem(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(

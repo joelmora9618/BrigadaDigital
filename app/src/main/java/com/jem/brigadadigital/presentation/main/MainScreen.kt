@@ -68,6 +68,13 @@ fun MainScreen(
     )
 
     val selectedTabRoute by emergencyViewModel.selectedTabRoute.collectAsStateWithLifecycle()
+    val activeResponders by emergencyViewModel.activeResponders.collectAsStateWithLifecycle()
+    
+    // Sincronizar personal activo con ProfileViewModel para evitar solapamientos en las métricas
+    LaunchedEffect(activeResponders) {
+        val uids = activeResponders.map { it.uid }.toSet()
+        profileViewModel.setActiveResponders(uids)
+    }
 
     // Sincronizar navegación al recrear MainScreen (FASE 12)
     LaunchedEffect(Unit) {
@@ -133,10 +140,12 @@ fun MainScreen(
                         viewModel = profileViewModel,
                         emergencyViewModel = emergencyViewModel,
                         onNavigateToDashboard = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Dashboard.createRoute()) },
-                        onNavigateToHistory = { bottomNavController.navigate(BottomNavItem.AlertMap.route) },
+                        onNavigateToHistory = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.History.route) },
                         onNavigateToActiveAlerts = onNavigateToActiveAlerts,
                         onNavigateToResponders = onNavigateToResponders,
-                        onNavigateToCreateEmergency = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.CreateEmergency.route) }
+                        onNavigateToCreateEmergency = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.CreateEmergency.route) },
+                        onNavigateToAvailablePersonnel = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.AvailablePersonnel.route) },
+                        onNavigateToMoviles = { parentNavController.navigate(com.jem.brigadadigital.presentation.navigation.Screen.Moviles.route) }
                     )
                 }
                 composable(BottomNavItem.AlertMap.route) {

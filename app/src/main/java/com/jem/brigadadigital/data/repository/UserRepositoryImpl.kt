@@ -100,4 +100,19 @@ class UserRepositoryImpl(
                 }
             }
     }
+
+    override fun observeAvailablePersonnelList(cuartelId: String): Flow<Result<List<UserProfile>>> {
+        return firestore.collection("users")
+            .whereEqualTo("cuartelId", cuartelId)
+            .whereEqualTo("disponible", true)
+            .snapshots()
+            .map { snapshot ->
+                try {
+                    val list = snapshot.mapNotNull { it.toObject(UserProfile::class.java) }
+                    Result.success(list)
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+            }
+    }
 }
