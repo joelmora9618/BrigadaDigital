@@ -6,9 +6,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Stop
+import com.jem.brigadadigital.domain.model.UserProfile
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,6 +26,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveEmergenciesListScreen(
+    userProfile: UserProfile,
     viewModel: EmergencyViewModel,
     onItemClicked: (String) -> Unit,
     onNavigateBack: () -> Unit
@@ -62,10 +68,16 @@ fun ActiveEmergenciesListScreen(
                     items(activeList.size) { index ->
                         val emergency = activeList[index]
                         val isNew = emergency.id !in respondedIds
+                        val dispatchRoles = listOf("admin", "jefe", "oficial", "oficial 1", "oficial 2", "oficial 3", "subjefe")
+                        val userRole = userProfile.role.trim().lowercase()
+                        val userRango = userProfile.rango.trim().lowercase()
+                        val canFinalize = (userRole in dispatchRoles) || (userRango in dispatchRoles)
+
                         EmergencyOverviewItem(
                             emergency = emergency, 
                             isNew = isNew,
-                            onClick = { onItemClicked(emergency.id) }
+                            onClick = { onItemClicked(emergency.id) },
+                            onFinalize = if (canFinalize) { { viewModel.finishEmergency(emergency.id) } } else null
                         )
                     }
                 }
@@ -79,8 +91,35 @@ fun ActiveEmergenciesListScreen(
 fun EmergencyOverviewItem(
     emergency: com.jem.brigadadigital.domain.model.EmergencyEvent,
     isNew: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFinalize: (() -> Unit)? = null
 ) {
+    var showConfirmDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    if (showConfirmDialog && onFinalize != null) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Finalizar Alerta") },
+            text = { Text("¿Está seguro de que desea finalizar esta alerta? Esta acción la moverá al historial.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onFinalize()
+                        showConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Finalizar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -128,6 +167,23 @@ fun EmergencyOverviewItem(
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White
             )
+
+            if (onFinalize != null && emergency.isActive) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { showConfirmDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("FINALIZAR ALERTA", fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

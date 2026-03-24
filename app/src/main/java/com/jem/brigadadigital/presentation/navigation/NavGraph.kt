@@ -283,15 +283,23 @@ fun MainNavGraph(
         }
 
         composable(Screen.ActiveAlerts.route) {
-            com.jem.brigadadigital.presentation.emergency.ActiveEmergenciesListScreen(
-                viewModel = emergencyViewModel,
-                onItemClicked = { emergencyId ->
-                    navController.navigate(Screen.Dashboard.createRoute(emergencyId))
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
+                val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
+            val userProfile = (profileState as? com.jem.brigadadigital.presentation.profile.ProfileState.Loaded)?.profile
+            
+            if (userProfile != null) {
+                com.jem.brigadadigital.presentation.emergency.ActiveEmergenciesListScreen(
+                    userProfile = userProfile,
+                    viewModel = emergencyViewModel,
+                    onItemClicked = { id -> 
+                        navController.navigate(Screen.Dashboard.createRoute(id)) 
+                    },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-            )
+            }
         }
 
         composable(Screen.ActiveResponders.route) {

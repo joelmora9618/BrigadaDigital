@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -105,7 +106,7 @@ fun DispatchScreen(
             if (selectedTab < availableTabs.size) {
                 when (availableTabs[selectedTab]) {
                     "Nueva Alerta" -> NewAlertForm(userProfile, emergencyViewModel, paddingValues, onOpenMapPicker)
-                    "En Curso" -> ActiveEmergenciesList(emergencyViewModel, paddingValues, onNavigateToDashboard)
+                    "En Curso" -> ActiveEmergenciesList(userProfile, emergencyViewModel, paddingValues, onNavigateToDashboard)
                     "Finalizadas" -> FinishedEmergenciesList(emergencyViewModel, paddingValues)
                 }
             }
@@ -350,6 +351,7 @@ fun NewAlertForm(
 
 @Composable
 fun ActiveEmergenciesList(
+    userProfile: UserProfile,
     emergencyViewModel: EmergencyViewModel,
     paddingValues: PaddingValues,
     onItemClicked: (String) -> Unit
@@ -373,7 +375,20 @@ fun ActiveEmergenciesList(
         ) {
             items(activeList.size) { index ->
                 val emergency = activeList[index]
-                EmergencyItem(emergency, onClick = { onItemClicked(emergency.id) })
+                val dispatchRoles = listOf("admin", "jefe", "oficial", "oficial 1", "oficial 2", "oficial 3", "subjefe")
+                val userRole = userProfile.role.trim().lowercase()
+                val userRango = userProfile.rango.trim().lowercase()
+                
+                // Si el rol O el rango están en la lista de despacho
+                val canFinalize = (userRole in dispatchRoles) || (userRango in dispatchRoles)
+                
+                Column {
+                    EmergencyItem(
+                        emergency = emergency, 
+                        onClick = { onItemClicked(emergency.id) },
+                        onFinalize = if (canFinalize) { { emergencyViewModel.finishEmergency(emergency.id) } } else null
+                    )
+                }
             }
         }
     }
@@ -412,8 +427,35 @@ fun FinishedEmergenciesList(
 @Composable
 fun EmergencyItem(
     emergency: com.jem.brigadadigital.domain.model.EmergencyEvent,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    onFinalize: (() -> Unit)? = null
 ) {
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showConfirmDialog && onFinalize != null) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Finalizar Alerta") },
+            text = { Text("¿Está seguro de que desea finalizar esta alerta? Esta acción la moverá al historial y liberará a los bomberos activos.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onFinalize()
+                        showConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Finalizar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -478,8 +520,25 @@ fun EmergencyItem(
             Text(
                 text = "${emergency.tipo} - ${emergency.direccion}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = FontWeight.Medium
             )
+            
+            if (onFinalize != null && emergency.isActive) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { showConfirmDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("FINALIZAR ALERTA", fontWeight = FontWeight.Bold)
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             val date = java.util.Date(emergency.timestamp)
             val format = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())

@@ -406,6 +406,15 @@ class EmergencyViewModel(
         _selectedPosition.value = null
         _selectedAddress.value = null
     }
+
+    fun finishEmergency(emergencyId: String) {
+        viewModelScope.launch {
+            val result = emergencyRepository.closeEmergency(emergencyId, emptyMap())
+            result.onFailure { e ->
+                _errorMessage.value = "Error al finalizar alerta: ${e.message}"
+            }
+        }
+    }
 }
 
 class EmergencyViewModelFactory(
