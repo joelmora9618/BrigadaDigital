@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.Phone
@@ -42,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jem.brigadadigital.presentation.emergency.EmergencyViewModel
 import com.jem.brigadadigital.presentation.profile.ProfileState
 import com.jem.brigadadigital.presentation.profile.ProfileViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +67,8 @@ fun HomeScreen(
     val responderCount by emergencyViewModel.allActiveRespondersCount.collectAsStateWithLifecycle()
     val availableCount by viewModel.availablePersonnelCount.collectAsStateWithLifecycle()
     val moviles by movilViewModel.moviles.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(profileState) {
         if (profileState is ProfileState.Loaded) {
@@ -139,7 +144,33 @@ fun HomeScreen(
                     )
                 )
         ) {
-            when (val state = profileState) {
+            val isRefreshingFromVM by viewModel.isRefreshing.collectAsStateWithLifecycle()
+            var manualRefreshing by remember { mutableStateOf(false) }
+            val refreshing = isRefreshingFromVM || manualRefreshing
+
+            PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = {
+                    scope.launch {
+                        manualRefreshing = true
+                        try {
+                            viewModel.refresh(uid)
+                            val pState = viewModel.profileState.value
+                            if (pState is ProfileState.Loaded) {
+                                val user = pState.profile
+                                emergencyViewModel.refreshData(user)
+                                movilViewModel.observeMoviles(user.cuartelId)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("HomeScreen", "Error during manual refresh", e)
+                        } finally {
+                            manualRefreshing = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (val state = profileState) {
                 is ProfileState.Loading, ProfileState.Idle -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Color(0xFF64B5F6))
@@ -203,12 +234,15 @@ fun HomeScreen(
                     }
 
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 24.dp)
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Spacer(modifier = Modifier.height(paddingValues.calculateTopPadding()))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 24.dp)
+                        ) {
 
                         // HEADER: Avatar + Greeting + SOS Alert (Megaphone)
                         Row(
@@ -418,15 +452,12 @@ fun HomeScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
-                    }
-                }
-                is ProfileState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(state.message, color = Color.White)
+                            Spacer(modifier = Modifier.height(32.dp))
+                        }
                     }
                 }
                 else -> {}
+            }
             }
         }
     }

@@ -16,6 +16,9 @@ class ProfileViewModel(
     private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Idle)
     val profileState: StateFlow<ProfileState> = _profileState.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _rawAvailablePersonnelList = MutableStateFlow<List<UserProfile>>(emptyList())
     private val _activeResponderUids = MutableStateFlow<Set<String>>(emptySet())
 
@@ -32,21 +35,55 @@ class ProfileViewModel(
 
     private var observeAvailableJob: kotlinx.coroutines.Job? = null
 
-    fun checkUserProfile(uid: String) {
+    fun checkUserProfile(uid: String, isRefresh: Boolean = false) {
         viewModelScope.launch {
-            _profileState.value = ProfileState.Loading
-            val result = userRepository.getUserProfile(uid)
-            result.onSuccess { profile ->
-                if (profile != null) {
-                    _profileState.value = ProfileState.Loaded(profile)
-                    observeProfile(uid)
-                    observeAvailablePersonnel(profile.cuartelId)
-                } else {
-                    _profileState.value = ProfileState.NotFound
+            try {
+                if (!isRefresh) {
+                    _profileState.value = ProfileState.Loading
                 }
-            }.onFailure { e ->
-                _profileState.value = ProfileState.Error(e.message ?: "Error al cargar perfil")
+                _isRefreshing.value = true
+                val result = userRepository.getUserProfile(uid)
+                result.onSuccess { profile ->
+                    if (profile != null) {
+                        _profileState.value = ProfileState.Loaded(profile)
+                        observeProfile(uid)
+                        observeAvailablePersonnel(profile.cuartelId)
+                    } else {
+                        _profileState.value = ProfileState.NotFound
+                    }
+                }.onFailure { e ->
+                    if (!isRefresh) {
+                        _profileState.value = ProfileState.Error(e.message ?: "Error al cargar perfil")
+                    }
+                }
+            } catch (e: Exception) {
+                if (!isRefresh) {
+                    _profileState.value = ProfileState.Error(e.message ?: "Error critico")
+                }
+            } finally {
+                _isRefreshing.value = false
             }
+        }
+    }
+
+    suspend fun refresh(uid: String) {
+        _isRefreshing.value = true
+        try {
+            // Ponemos un timeout de 5 segundos para que el indicador no se quede pegado si falla la red
+            kotlinx.coroutines.withTimeout(5000) {
+                val result = userRepository.getUserProfile(uid)
+                result.onSuccess { profile ->
+                    if (profile != null) {
+                        _profileState.value = ProfileState.Loaded(profile)
+                        observeProfile(uid)
+                        observeAvailablePersonnel(profile.cuartelId)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Refresh", "Timeout o error en refresh", e)
+        } finally {
+            _isRefreshing.value = false
         }
     }
 

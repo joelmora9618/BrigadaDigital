@@ -415,6 +415,14 @@ class EmergencyViewModel(
             }
         }
     }
+
+    suspend fun refreshData(user: com.jem.brigadadigital.domain.model.UserProfile) {
+        currentUser = user
+        emergencyRepository.getRespondedEmergencyIds(user.uid).onSuccess { ids ->
+            _respondedIds.value = ids
+        }
+        restartObservers()
+    }
 }
 
 class EmergencyViewModelFactory(
