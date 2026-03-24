@@ -115,4 +115,16 @@ class UserRepositoryImpl(
                 }
             }
     }
+
+    override suspend fun updateFcmToken(uid: String, token: String): Result<Unit> {
+        return try {
+            firestore.collection("users").document(uid)
+                .update("fcmToken", token)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
+    }
 }

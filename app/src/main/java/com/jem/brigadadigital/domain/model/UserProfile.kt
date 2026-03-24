@@ -8,5 +8,6 @@ data class UserProfile(
     val especialidad: String = "",
     val cuartelId: String = "",
     val disponible: Boolean = false, // Renombrado para evitar bugs de mapeo de Firebase con el prefijo "is"
-    val role: String = "bombero" // "bombero", "admin", "jefe"
+    val role: String = "bombero", // "bombero", "admin", "jefe"
+    val fcmToken: String? = null
 )

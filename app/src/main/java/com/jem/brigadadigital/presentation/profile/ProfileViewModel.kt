@@ -114,6 +114,12 @@ class ProfileViewModel(
         _rawAvailablePersonnelList.value = emptyList()
         _activeResponderUids.value = emptySet()
     }
+
+    fun updateFcmToken(uid: String, token: String) {
+        viewModelScope.launch {
+            userRepository.updateFcmToken(uid, token)
+        }
+    }
 }
 
 class ProfileViewModelFactory(

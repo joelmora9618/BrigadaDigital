@@ -123,6 +123,34 @@ fun MainNavGraph(
 
                 val context = LocalContext.current
 
+                // Registro de Token FCM automático
+                androidx.compose.runtime.LaunchedEffect(uid) {
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val token = task.result
+                            profileViewModel.updateFcmToken(uid, token)
+                        }
+                    }
+                }
+
+                // Monitor de Emergencias (Versión Gratuita)
+                androidx.compose.runtime.LaunchedEffect(profileState) {
+                    if (profileState is com.jem.brigadadigital.presentation.profile.ProfileState.Loaded) {
+                        val profile = (profileState as com.jem.brigadadigital.presentation.profile.ProfileState.Loaded).profile
+                        if (profile.cuartelId.isNotEmpty()) {
+                            val serviceIntent = android.content.Intent(context, com.jem.brigadadigital.service.EmergencyMonitorService::class.java).apply {
+                                action = com.jem.brigadadigital.service.EmergencyMonitorService.ACTION_START
+                                putExtra(com.jem.brigadadigital.service.EmergencyMonitorService.EXTRA_CUARTEL_ID, profile.cuartelId)
+                            }
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                context.startForegroundService(serviceIntent)
+                            } else {
+                                context.startService(serviceIntent)
+                            }
+                        }
+                    }
+                }
+
                 // Mostrar error visual en caso de fallar permisos al crear simulacro
                 LaunchedEffect(emergencyError) {
                     if (emergencyError != null) {

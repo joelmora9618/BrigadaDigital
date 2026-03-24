@@ -62,6 +62,12 @@
             android:foregroundServiceType="location"
             android:exported="false" />
 
+        <!-- Emergency Monitor Service (Free Alerting System) -->
+        <service
+            android:name=".service.EmergencyMonitorService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
     </application>
 
 </manifest>

@@ -38,6 +38,17 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BrigadaDigitalTheme {
+                // Android 13+ Notification Permission Request
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                    ) { _ -> }
+                    
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+                
                 MainNavGraph()
             }
         }
